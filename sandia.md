@@ -18,4 +18,4 @@ That is a harder claim than “HTTPS + hash the embedding.” The server is *sup
 
 ## Stated limit
 
-FHE hides the server from the biometric and the price. It does not certify impersonation resistance. Thresholds are local. Escrow is a key file, not an audited program. Those are the real edges. Inside them, the cloud that scores you cannot see you.
+FHE hides the server from the biometric and the price. It does not certify impersonation resistance. Thresholds are local. Escrow is a key file, not an audited program. The public desk is browser SEAL plus `/face-web`; words/wave lights on that page are local UI. Those are the real edges. Inside them, the cloud that scores you cannot see you.

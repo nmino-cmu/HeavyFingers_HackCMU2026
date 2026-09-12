@@ -14,7 +14,7 @@ desk static on orch nginx. matcher is not this tree.
   <meta name="description" content="Private identity desk. Face and voice are CKKS ciphertext. Vultr evaluates them. The secret key never leaves this machine.">
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/logo.png">
-  <link rel="stylesheet" href="style.css?v=rev1">
+  <link rel="stylesheet" href="style.css?v=rev2">
 </head>
 <body class="desktop" data-bg="subtle">
 <div data-umbra-bg></div>
@@ -47,7 +47,7 @@ desk static on orch nginx. matcher is not this tree.
             <span class="tag">Face</span>
             <span class="tag">Voice</span>
           </div>
-          <span class="tag tag-hot">Fully FHE</span>
+          <span class="tag tag-hot">CKKS on Vultr</span>
         </div>
         <a class="win-btn cta" href="enroll.html">Begin Registration</a>
       </div>
@@ -82,7 +82,7 @@ desk static on orch nginx. matcher is not this tree.
         </div>
       </div>
       <div class="win-body">
-        <p class="ut-lead">You stay the same person. Nobody — including the cloud — can tie the check back to your video. Lattice FHE runs on Vultr. The secret key never leaves this laptop.</p>
+        <p class="ut-lead">Face and voice are encrypted here. Vultr evaluates the ciphertext. This machine decrypts a match bit. The secret key does not go to the cloud.</p>
         <div class="ut-viz" aria-hidden="true">
           <div class="ut-flow">
             <div class="ut-box">Face + voice<span>crops stay here</span></div>
@@ -99,19 +99,19 @@ desk static on orch nginx. matcher is not this tree.
         <div class="ut-cards">
           <div class="ut-card">
             <h3>Ciphertext roster</h3>
-            <p>Enrolled face and voice templates live as TenSEAL ciphertext on this machine. The worker never gets the stills or the wav.</p>
+            <p>On this desk, face and voice templates are Microsoft SEAL CKKS in IndexedDB. The worker never receives the still or the wav.</p>
           </div>
           <div class="ut-card">
             <h3>Homomorphic check</h3>
-            <p>A live take is encrypted here, posted as ciphertext, evaluated under CKKS on Vultr, and decrypted here as a bit. Vultr cannot read the match.</p>
+            <p>A live take is encrypted here, posted as ciphertext to Vultr, and decrypted here. The cloud sees the pack, not the pixels.</p>
           </div>
           <div class="ut-card">
-            <h3>Crops stay local</h3>
-            <p>If a circuit cannot do a step, that step is not a plaintext API in the cloud. Vultr gets ciphertext. It does not get the still or the wav.</p>
+            <h3>Two paths</h3>
+            <p>This site is browser SEAL plus <code>/face-web</code>. The laptop CLI is TenSEAL and Concrete-ML through the orchestrator. Same rule: ciphertext in, ciphertext out.</p>
           </div>
           <div class="ut-card">
-            <h3>Vultr is the engine</h3>
-            <p>Five Cloud Compute boxes on one VPC. Orch rejects JSON and JPEGs. Workers bind 10.20.0.x. This is not a site parked on a droplet.</p>
+            <h3>The farm</h3>
+            <p>Five Cloud Compute boxes in ewr. One public router. FHE workers on <code>10.20.0.0/24</code>. JSON and JPEGs on those matcher ports return 400.</p>
           </div>
         </div>
       </div>
@@ -119,9 +119,9 @@ desk static on orch nginx. matcher is not this tree.
     </article>
   </div>
 </div>
-<script src="umbra.js"></script>
-<script src="vendor/grain.js?v=rev1"></script>
-<script src="windows.js?v=rev1"></script>
+<script src="umbra.js?v=rev2"></script>
+<script src="vendor/grain.js?v=rev2"></script>
+<script src="windows.js?v=rev2"></script>
 <script>
 (function () {
   const just = new URLSearchParams(location.search).get("enrolled");

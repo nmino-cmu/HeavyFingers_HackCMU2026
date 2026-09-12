@@ -27,8 +27,8 @@ A JSON face upload is refused. A short binary body hits a CKKS unpacker, not an 
 
 ## Details
 
-- Enroll (`umbra/enroll.py`): crops become TenSEAL CKKS ciphertext in `roster_data`. `sk` stays in `enroll_keys/` on this machine.
-- Sign-in (`umbra/verify.py`): encrypted face and voice distance on Vultr; spoken card (Whisper + `umbra/s1.py`) and wave liveness on the Mac. If a circuit cannot do a step, that step is not a plaintext cloud API.
+- Public desk (`umbra/web/`): Microsoft SEAL CKKS in the browser, keys in IndexedDB, eval at `/face-web` on Vultr. Stills and wav are not uploaded.
+- Laptop CLI (`umbra/enroll.py`, `umbra/verify.py`): TenSEAL face and Concrete-ML voice/bid through orch `:8080`. Spoken card (Whisper + `umbra/s1.py`) and wave policy stay on the Mac. Those two lights on the public desk are local UI, not the Mac Whisper path.
 - Sealed bids (`/bid`): two amounts stay encrypted on Vultr; this laptop decrypts the winner index.
 - Purchase receipts (`umbra/solana_wallet.py`): one-transaction 1/1 SPL mint, supply frozen, AES-GCM outcome keyed to the recipient. Winners and losers both receive an NFT. Desk lists hashes + explorer links only.
 - Hops (`umbra/hops.py`): faucet → ingress → cutout → bid, no memo. Fail wipes keys (`umbra/decide.py`).

@@ -13,7 +13,7 @@ const DB = "umbra-local-v3";
 const WORDS = (
   "the lazy dog fox am is hack win project asterisk " +
   "quick brown jumps over cmu lattice cipher nonce"
-).split();
+).split(/\s+/);
 
 export const EVAL_URL = /(?:^|\.)nickmino\.com$/i.test(location.hostname)
   ? "https://207.246.126.149.sslip.io/face-web"
@@ -297,14 +297,19 @@ async function videoFrames(blob, n) {
     else v.onloadeddata = res;
   });
   const dur = v.duration && isFinite(v.duration) ? v.duration : 1;
+  const c = document.createElement("canvas");
   const frames = [];
   for (let i = 0; i < n; i++) {
     v.currentTime = (dur * i) / Math.max(1, n - 1);
     await new Promise((res) => {
-      v.onseeked = res;
-      setTimeout(res, 400);
+      const done = () => {
+        v.onseeked = null;
+        clearTimeout(t);
+        res();
+      };
+      v.onseeked = done;
+      const t = setTimeout(done, 80);
     });
-    const c = document.createElement("canvas");
     c.width = v.videoWidth || 640;
     c.height = v.videoHeight || 480;
     c.getContext("2d").drawImage(v, 0, 0);

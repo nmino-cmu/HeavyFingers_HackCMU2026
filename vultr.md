@@ -2,6 +2,12 @@
 
 We use Vultr as the FHE compute plane. The laptop encrypts face, voice, print, and bid values with fully homomorphic encryption (CKKS / TFHE). Vultr evaluates those ciphertexts. The laptop decrypts. Secret keys are not on any instance.
 
+```bash
+curl -sS http://207.246.126.149:8080/health
+curl -sS -X POST http://207.246.126.149:8080/face -H 'Content-Type: application/json' --data '{}'
+curl -sS -X POST https://207.246.126.149.sslip.io/face-web --data-binary 'xxxx'
+```
+
 `EVAL_HOST` defaults to `vultr` ([`umbra/eval_host.py`](umbra/eval_host.py)). A row in [`umbra/LEDGER.md`](umbra/LEDGER.md) marked `EVAL_HOST=vultr` ran on this farm, not on the Mac.
 
 Live map: [`umbra/FARM.md`](umbra/FARM.md). Region: `ewr`.

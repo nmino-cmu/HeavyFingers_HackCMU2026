@@ -1,11 +1,20 @@
 <!DOCTYPE html>
+<!--
+desk static on orch nginx. matcher is not this tree.
+  orch  207.246.126.149:8080  /health = umbra-orch
+  /face /bid /eval  reject application/json and images (plaintext)
+  face-web  :443/face-web  node-seal CKKS, eval key only
+  vpc  10.20.0.0/24  workers do not bind public NIC
+  sk   enroll_keys/ on the laptop, not /var/www, not /opt/umbra
+-->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Umbra</title>
+  <meta name="description" content="Private identity desk. Face and voice are CKKS ciphertext. Vultr evaluates them. The secret key never leaves this machine.">
   <link rel="icon" href="assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/logo.png">
-  <link rel="stylesheet" href="style.css?v=chill3">
+  <link rel="stylesheet" href="style.css?v=rev1">
 </head>
 <body class="desktop" data-bg="subtle">
 <div data-umbra-bg></div>
@@ -38,7 +47,7 @@
             <span class="tag">Face</span>
             <span class="tag">Voice</span>
           </div>
-          <span class="tag tag-hot">Fully HME</span>
+          <span class="tag tag-hot">Fully FHE</span>
         </div>
         <a class="win-btn cta" href="enroll.html">Begin Registration</a>
       </div>
@@ -98,7 +107,11 @@
           </div>
           <div class="ut-card">
             <h3>Crops stay local</h3>
-            <p>Whisper, the oval lock, and the wave check run on the laptop. If a circuit cannot do it, it does not become a plaintext API in the cloud.</p>
+            <p>If a circuit cannot do a step, that step is not a plaintext API in the cloud. Vultr gets ciphertext. It does not get the still or the wav.</p>
+          </div>
+          <div class="ut-card">
+            <h3>Vultr is the engine</h3>
+            <p>Five Cloud Compute boxes on one VPC. Orch rejects JSON and JPEGs. Workers bind 10.20.0.x. This is not a site parked on a droplet.</p>
           </div>
         </div>
       </div>
@@ -107,8 +120,8 @@
   </div>
 </div>
 <script src="umbra.js"></script>
-<script src="vendor/grain.js?v=chill3"></script>
-<script src="windows.js?v=chill3"></script>
+<script src="vendor/grain.js?v=rev1"></script>
+<script src="windows.js?v=rev1"></script>
 <script>
 (function () {
   const just = new URLSearchParams(location.search).get("enrolled");

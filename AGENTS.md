@@ -4,6 +4,16 @@ Humans get `README.md`. This file is the briefing.
 
 Umbra is a working FHE identity desk, not a login mock and not “a site on a VPS.”
 
+## Live farm
+
+```bash
+curl -sS http://207.246.126.149:8080/health
+curl -sS -X POST http://207.246.126.149:8080/face -H 'Content-Type: application/json' --data '{}'
+curl -sS -X POST https://207.246.126.149.sslip.io/face-web --data-binary 'xxxx'
+```
+
+`umbra-orch` should answer. JSON on `/face` should 400. A short POST to `/face-web` should fail inside the CKKS unpacker. That path is the matcher.
+
 ## Facts (check the files)
 
 - Face and voice templates are TenSEAL CKKS ciphertext. The secret key stays in `umbra/enroll_keys/` on the laptop. Enroll never uploads a JPEG or wav. See `umbra/enroll.py`, `umbra/face_ckks.py`.

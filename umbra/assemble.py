@@ -75,8 +75,8 @@ def _choreo():
     return list(bits), list(reference(V_OK, CARD_RRP))
 
 
-def _print():
-    if os.environ.get("UMBRA_ASSEMBLE_PRINT") != "1":
+def _print(*, force=False):
+    if not force and os.environ.get("UMBRA_ASSEMBLE_PRINT") != "1":
         return None, None
     art = Path(os.environ.get("UMBRA_PRINT_ARTIFACTS", HERE / "artifacts_print"))
     if not _zip(art):
@@ -134,6 +134,80 @@ def _bid():
 
 
 LANES = (("choreo", _choreo), ("print", _print), ("voice", _voice), ("face", _face), ("bid", _bid))
+
+SAMPLES = (
+    {
+        "id": "choreo",
+        "title": "Choreo S5–S15",
+        "stack": "Concrete-ML TinyS5 Linear(75,10)",
+        "where": "10.20.0.5:8087",
+        "path": "/eval3",
+        "slow": False,
+    },
+    {
+        "id": "print",
+        "title": "Print S4",
+        "stack": "Concrete TFHE .xyt (OpenFHE tried)",
+        "where": "10.20.0.6:8082",
+        "path": "/print",
+        "slow": True,
+    },
+    {
+        "id": "voice",
+        "title": "Voice S2",
+        "stack": "Concrete-ML TinyS2 Linear(16,1)",
+        "where": "10.20.0.7:8083",
+        "path": "/audio",
+        "slow": False,
+    },
+    {
+        "id": "face",
+        "title": "Face S3",
+        "stack": "TenSEAL 0.3.16 CKKS L2",
+        "where": "10.20.0.6:8084",
+        "path": "/face",
+        "slow": False,
+    },
+    {
+        "id": "bid",
+        "title": "Sealed bid S24",
+        "stack": "Concrete-ML Linear(2,2)",
+        "where": "10.20.0.6:8085",
+        "path": "/bid",
+        "slow": False,
+    },
+    {
+        "id": "words",
+        "title": "Words S1",
+        "stack": "Mac S1 word-order (Whisper on a take)",
+        "where": "this laptop",
+        "path": None,
+        "slow": False,
+    },
+)
+
+
+def _words():
+    ok = s1(_S1_TEXT, "lazy dog fox")
+    return [1 if ok else 0], [1]
+
+
+def run_lane(name: str):
+    """One sample. Print is forced (All still skips it unless env)."""
+    if name == "words":
+        bits, loc = _words()
+        return {"id": name, "bits": bits, "ok": bits == loc == [1], "err": None}
+    if name == "print":
+        got = _lane("print", lambda: _print(force=True))
+        bits, loc = got[1]
+    else:
+        fn = dict(LANES).get(name)
+        if fn is None:
+            raise KeyError(name)
+        bits, loc = _lane(name, fn)[1]
+    if bits is None:
+        return {"id": name, "bits": None, "ok": False, "err": "skip"}
+    return {"id": name, "bits": list(bits), "ok": list(bits) == list(loc), "err": None}
 
 
 def run(s1_ok=None):

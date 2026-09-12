@@ -2,51 +2,69 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Umbra — one lot</title>
+  <title>Umbra — samples</title>
   <style>
-    :root { color-scheme: dark; --bg:#0c0d10; --ink:#e8e6df; --muted:#8b8a84; --ok:#3dba7a; --no:#c45c4a; --line:#2a2b30; }
+    :root { color-scheme: dark; --bg:#0c0d10; --ink:#e8e6df; --muted:#8b8a84; --ok:#3dba7a; --no:#c45c4a; --line:#2a2b30; --tile:#14151a; }
     body { margin:0; font: 16px/1.45 ui-sans-serif, system-ui, sans-serif; background:var(--bg); color:var(--ink); }
-    main { max-width: 42rem; margin: 2rem auto; padding: 0 1.25rem; }
-    h1 { font-weight: 600; letter-spacing: -0.02em; }
-    .card { border:1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; margin: 1rem 0; }
-    .card pre { white-space: pre-wrap; margin: 0.4rem 0 0; font: 14px/1.4 ui-monospace, monospace; }
-    .row { display:flex; gap:0.6rem; flex-wrap:wrap; margin: 0.8rem 0; }
+    main { max-width: 52rem; margin: 2rem auto; padding: 0 1.25rem 3rem; }
+    h1 { font-weight: 600; letter-spacing: -0.02em; margin: 0 0 0.35rem; }
+    .card { border:1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; margin: 1rem 0; background:var(--tile); }
+    .card pre { white-space: pre-wrap; margin: 0.4rem 0 0; font: 13px/1.4 ui-monospace, monospace; }
+    .row { display:flex; gap:0.6rem; flex-wrap:wrap; margin: 0.8rem 0 0; }
     button, .file { background:#1a1b20; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:0.45rem 0.8rem; cursor:pointer; }
+    button:disabled { opacity:0.5; cursor:wait; }
     .muted { color:var(--muted); font-size: 0.92rem; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap:0.7rem; margin-top:0.8rem; }
+    .tile { border:1px solid var(--line); border-radius:10px; padding:0.85rem 0.9rem; }
+    .tile h3 { margin:0 0 0.25rem; font-size:0.95rem; font-weight:600; }
+    .tile .stack { color:var(--muted); font-size:0.78rem; min-height:2.3em; }
+    .pill { display:inline-block; margin-top:0.5rem; font-size:0.75rem; padding:0.12rem 0.45rem; border-radius:999px; background:#2a2b30; }
+    .pill.ok { background:var(--ok); color:#062; }
+    .pill.no { background:var(--no); color:#fff; }
     .lights { display:flex; gap:0.45rem; flex-wrap:wrap; align-items:center; }
     .bit { width:1.35rem; height:1.35rem; border-radius:50%; background:#2a2b30; display:grid; place-items:center; font-size:0.62rem; color:#bbb; }
     .bit.on { background:var(--ok); color:#062; }
     .bit.off { background:var(--no); color:#fff; }
     a { color:#8cb4ff; }
     video { width:100%; max-height:12rem; background:#000; border-radius:8px; margin-top:0.5rem; }
+    #err { color:var(--no); font-size:0.9rem; min-height:1.2em; }
   </style>
 </head>
 <body>
 <main>
   <h1>Umbra</h1>
-  <p class="muted">Same person, this card, right now. Crops stay on this machine. The worker sees ciphertext. A pass grows a hop path — not an account.</p>
+  <p class="muted">Samples on Vultr ciphertext. Crops and <code>sk</code> stay here. A pass grows a hop path — not an account.</p>
 
-  <section class="card" id="card-box">
+  <section class="card">
     <strong>Card</strong>
     <pre id="card">…</pre>
   </section>
 
   <section class="card">
+    <strong>Samples</strong>
+    <p class="muted">Each Run encrypts on this laptop, posts ciphertext to orch, decrypts the bit here.</p>
+    <div class="grid" id="grid"></div>
+    <div class="row">
+      <button type="button" id="all">Run all (skip print)</button>
+    </div>
+    <p id="err"></p>
+  </section>
+
+  <section class="card">
     <strong>Crop</strong>
-    <p class="muted">Record or upload a clip. It is not sent to the worker as video.</p>
+    <p class="muted">Stays on this machine. Not sent as video.</p>
     <div class="row">
       <button type="button" id="record">Record</button>
-      <label class="file">Upload crop <input id="upload" type="file" accept="video/*,image/*" hidden></label>
+      <label class="file">Upload <input id="upload" type="file" accept="video/*,image/*" hidden></label>
     </div>
     <video id="preview" hidden playsinline></video>
   </section>
 
   <section class="card">
-    <strong>Bits</strong>
-    <p class="muted">Lights are decrypted bits on this machine. Words (S1) are local.</p>
+    <strong>AND</strong>
+    <p class="muted">Lights are decrypted bits. Words (S1) are local Whisper.</p>
     <div class="lights" id="lights"></div>
     <div class="row">
-      <button type="button" id="fixture">Run fixture</button>
       <button type="button" id="hop">Hop after pass</button>
     </div>
   </section>
@@ -56,6 +74,7 @@
     <ol id="explorer"></ol>
   </section>
 </main>
+<script src="/umbra.js"></script>
 <script>
 const LABELS = ["S5","S6","S7","S8","S9","S10","S11","S12","S13","S14","S4","S2","S3","S24","S1","S19"];
 const lights = document.getElementById("lights");
@@ -72,27 +91,65 @@ function setBits(bits) {
     el.classList.toggle("off", bits[i] === 0);
   });
 }
-async function j(url, opt) {
-  const r = await fetch(url, opt);
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
+function pill(el, ok, text) {
+  el.textContent = text;
+  el.className = "pill " + (ok ? "ok" : "no");
 }
-j("/card").then(c => {
+const tiles = {};
+async function boot() {
+  const c = await Umbra.card();
   document.getElementById("card").textContent =
     `say:    ${c.say}\nhand:   ${c.hand}\nmotion: ${c.motion}\nwhere:  ${c.where}\nside:   ${c.side}\nend:    ${c.end}`;
-});
-j("/last").then(h => {
-  if (h && h.explorers) {
-    document.getElementById("explorer").innerHTML = h.explorers.map(u => `<li><a href="${u}">${u}</a></li>`).join("");
+  const {samples} = await fetch("/samples").then(r => r.json());
+  const grid = document.getElementById("grid");
+  samples.forEach(s => {
+    const t = document.createElement("div");
+    t.className = "tile";
+    t.innerHTML = `<h3>${s.title}</h3><div class="stack">${s.stack}<br>${s.where}${s.slow ? " · ~6 min keygen" : ""}</div>
+      <div class="row"><button type="button" data-lane="${s.id}">Run</button></div>
+      <span class="pill" data-pill="${s.id}">idle</span>`;
+    grid.appendChild(t);
+    tiles[s.id] = t.querySelector("[data-pill]");
+    t.querySelector("button").onclick = () => runOne(s.id);
+  });
+}
+async function runOne(lane) {
+  const p = tiles[lane];
+  pill(p, false, "running");
+  document.getElementById("err").textContent = "";
+  try {
+    const out = await Umbra.sample(lane);
+    pill(p, out.ok, out.ok ? (out.bits || []).join(" ") : (out.err || "fail"));
+  } catch (e) {
+    pill(p, false, "err");
+    document.getElementById("err").textContent = String(e.message || e);
   }
-}).catch(() => {});
-document.getElementById("fixture").onclick = async () => {
-  const out = await j("/fixture", {method:"POST"});
-  setBits(out.bits);
+}
+document.getElementById("all").onclick = async () => {
+  document.getElementById("err").textContent = "";
+  document.getElementById("all").disabled = true;
+  try {
+    const out = await Umbra.fixture();
+    setBits(out.bits);
+    Object.entries(out.lanes || {}).forEach(([k, bits]) => {
+      if (tiles[k]) pill(tiles[k], bits != null && bits.every(b => b === 1), bits == null ? "skip" : bits.join(" "));
+    });
+    if (out.ok) pill(tiles.words || {textContent:""}, true, "1");
+  } catch (e) {
+    document.getElementById("err").textContent = String(e.message || e);
+  }
+  document.getElementById("all").disabled = false;
 };
 document.getElementById("hop").onclick = async () => {
-  const out = await j("/hop", {method:"POST"});
-  document.getElementById("explorer").innerHTML = out.explorers.map(u => `<li><a href="${u}">${u}</a></li>`).join("");
+  try {
+    const out = await fetch("/hop", {method:"POST"}).then(async r => {
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    });
+    document.getElementById("explorer").innerHTML = out.explorers.map(u => `<li><a href="${u}">${u}</a></li>`).join("");
+  } catch (e) {
+    document.getElementById("err").textContent = String(e.message || e);
+  }
 };
 document.getElementById("upload").onchange = ev => {
   const f = ev.target.files[0];
@@ -108,6 +165,12 @@ document.getElementById("record").onclick = async () => {
   v.hidden = false;
   v.play();
 };
+boot().catch(e => document.getElementById("err").textContent = String(e));
+fetch("/last").then(r => r.json()).then(h => {
+  if (h && h.explorers) {
+    document.getElementById("explorer").innerHTML = h.explorers.map(u => `<li><a href="${u}">${u}</a></li>`).join("");
+  }
+}).catch(() => {});
 </script>
 </body>
 </html>

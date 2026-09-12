@@ -31,6 +31,11 @@ def main():
     check(not decide([1, 0], [1, 0], True).ok, "zero farm bit fails")
     check(decide([1, None], [1, None], True).ok, "None omitted")
     check(len(LABELS) == 16, LABELS)
+    from umbra.assemble import SAMPLES, run_lane
+
+    check([s["id"] for s in SAMPLES] == ["choreo", "print", "voice", "face", "bid", "words"], SAMPLES)
+    w = run_lane("words")
+    check(w["ok"] and w["bits"] == [1], w)
     if os.environ.get("UMBRA_ASSEMBLE_LIVE") == "1":
         d, payload = run()
         check(payload["lanes"]["choreo"] is not None, f"choreo lane {payload['lanes']}")

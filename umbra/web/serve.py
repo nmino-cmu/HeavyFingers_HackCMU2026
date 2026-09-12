@@ -47,6 +47,14 @@ class H(BaseHTTPRequestHandler):
 
             self._send(200, json.dumps(generate()).encode())
             return
+        if path == "/samples":
+            from umbra.assemble import SAMPLES
+
+            self._send(200, json.dumps({"samples": list(SAMPLES)}).encode())
+            return
+        if path == "/umbra.js":
+            self._send(200, (WEB / "umbra.js").read_bytes(), "text/javascript; charset=utf-8")
+            return
         if path == "/last":
             if LAST.is_file():
                 self._send(200, LAST.read_bytes())
@@ -57,6 +65,17 @@ class H(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = self.path.split("?", 1)[0]
+        if path == "/sample":
+            n = int(self.headers.get("Content-Length") or "0")
+            raw = self.rfile.read(n) if n else b"{}"
+            lane = (json.loads(raw.decode() or "{}") or {}).get("lane")
+            from umbra.assemble import SAMPLES, run_lane
+
+            if lane not in {s["id"] for s in SAMPLES}:
+                self._send(400, b"bad lane")
+                return
+            self._send(200, json.dumps(run_lane(lane)).encode())
+            return
         if path == "/fixture":
             os.environ.setdefault("UMBRA_FHE_ARTIFACTS", _artifacts())
             from umbra.assemble import run

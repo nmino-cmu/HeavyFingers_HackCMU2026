@@ -32,6 +32,7 @@ from umbra.fixtures import (
     mutant,
     reference,
 )
+from umbra.protocol import pack_card, pack_request, unpack_request
 
 CHECKS_RUN = 0
 
@@ -57,7 +58,7 @@ def host_gate():
 
 def post_eval(body: bytes, nonce: str = "umbra-p3"):
     req = urllib.request.Request(
-        worker_url() + "/eval",
+        worker_url() + os.environ.get("UMBRA_EVAL_PATH", "/eval3"),
         data=body,
         method="POST",
         headers={"X-Umbra-Nonce": nonce, "Content-Type": "application/octet-stream"},
@@ -90,32 +91,38 @@ def main():
     host_gate()
     audit_no_client_card_xor()
     check(get_eval_host() in ("vultr", "mac"), f"EVAL_HOST={get_eval_host()}")
+    for name, card in (("rrp", CARD_RRP), ("lrp", CARD_LRP), ("rlp", CARD_RLP), ("rri", CARD_RRI)):
+        evk, ct, raw = unpack_request(pack_request(b"E" * 32, b"ct-bytes", encode_card(card)))
+        check(raw == pack_card(encode_card(card)), f"card trailer {name}")
+        check(ct == b"ct-bytes", f"ct split {name}")
 
-    client = Client()
+    def client_for(card_name):
+        root = os.environ.get("UMBRA_P3_ARTIFACTS", os.path.join(ROOT, "umbra/artifacts-p3"))
+        return Client(artifact_dir=os.path.join(root, card_name))
+
+    client = client_for("rrp")
     bits_ok = eval_bits(client, V_OK, CARD_RRP)
     ref_ok = reference(V_OK, CARD_RRP)
     check(bits_ok == ref_ok, (bits_ok, ref_ok))
     check(bits_ok == REF_OK, bits_ok)
 
-    # same ciphertext, different public card constants (S15 binding)
-    ct = client.quantize_encrypt_serialize(V_OK)
-    body_rrp = client.pack_eval_body_from_ct(ct, CARD_RRP)
-    body_lrp = client.pack_eval_body_from_ct(ct, CARD_LRP)
+    cl_lrp = client_for("lrp")
+    body_rrp = client.pack_eval_body(V_OK, CARD_RRP)
+    body_lrp = cl_lrp.pack_eval_body(V_OK, CARD_LRP)
     check(body_rrp != body_lrp, "card must change wire body")
     _, out_rrp, _ = post_eval(body_rrp)
     _, out_lrp, _ = post_eval(body_lrp)
     bits_rrp = client.eval_bits(out_rrp)
-    bits_lrp = client.eval_bits(out_lrp)
+    bits_lrp = cl_lrp.eval_bits(out_lrp)
     check(bits_rrp == REF_OK, bits_rrp)
     check(bits_lrp[IDX["S5"]] == 0, f"CARD_LRP S5 {bits_lrp}")
     check(sum(bits_lrp) < sum(bits_rrp), "card flip must change decrypted bits")
 
-    bits_rlp = eval_bits(client, V_OK, CARD_RLP)
+    bits_rlp = eval_bits(client_for("rlp"), V_OK, CARD_RLP)
     check(bits_rlp[IDX["S8"]] == 0, f"CARD_RLP S8 {bits_rlp}")
-    bits_rri = eval_bits(client, V_OK, CARD_RRI)
+    bits_rri = eval_bits(client_for("rri"), V_OK, CARD_RRI)
     check(bits_rri[IDX["S11"]] == 0, f"CARD_RRI S11 {bits_rri}")
 
-    # S8 pinned: +0.1873 / side=right -> 1; minus -> 0; plus + side=left -> 0
     v_plus = list(V_OK)
     v_plus[34] = 0.1873
     check(reference(v_plus, CARD_RRP)[IDX["S8"]] == 1, "ref S8 plus right")
@@ -124,25 +131,20 @@ def main():
     check(reference(v_minus, CARD_RRP)[IDX["S8"]] == 0, "ref S8 minus right")
     check(reference(v_plus, CARD_RLP)[IDX["S8"]] == 0, "ref S8 plus left card")
 
-    # S6 / S9 mutants
     for name in ("V_FIST", "V_ONECYCLE", "V_RAMP"):
         b = eval_bits(client, mutant(name), CARD_RRP)
         check(b[IDX["S6"]] == 0, f"{name} S6 {b}")
     check(eval_bits(client, mutant("V_TALKTHENMOVE"), CARD_RRP)[IDX["S9"]] == 0, "V_TALKTHENMOVE S9")
 
-    # one mutant -> exactly one bit flips vs REF_OK
     for m in MUTANTS:
         v = mutant(m)
         got = eval_bits(client, v, CARD_RRP)
         want = reference(v, CARD_RRP)
         check(got == want, f"{m} got={got} want={want}")
-        diff = [i for i, (a, b) in enumerate(zip(got, want)) if a != b]
-        check(not diff, f"{m} mismatch at {diff}")
         if m != "V_REVERSE":
             flips = [i for i, (a, b) in enumerate(zip(got, REF_OK)) if a != b]
             check(len(flips) >= 1, f"{m} must flip at least one bit {got}")
 
-    # plaintext rejected
     plain = struct.pack(">75f", *V_OK)
     code_p, _, _ = post_eval(plain)
     check(code_p >= 400, f"plaintext must 4xx got {code_p}")

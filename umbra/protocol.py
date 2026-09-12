@@ -29,11 +29,13 @@ def unpack_request(body: bytes) -> tuple[bytes, bytes, bytes]:
     evk = body[4 : 4 + evk_len]
     rest = body[4 + evk_len :]
     card = b""
-    if len(rest) >= 2 + CARD_BYTES:
-        card_len = struct.unpack(">H", rest[-2:])[0]
+    trailer = 2 + CARD_BYTES
+    if len(rest) >= trailer:
+        # pack is card_len (BE u16) + 5×float64
+        card_len = struct.unpack(">H", rest[-trailer : -CARD_BYTES])[0]
         if card_len == CARD_BYTES:
-            card = rest[-(2 + CARD_BYTES) : -2]
-            rest = rest[: -(2 + CARD_BYTES)]
+            card = rest[-CARD_BYTES:]
+            rest = rest[:-trailer]
     if not rest:
         raise ValueError("missing ciphertext")
     return evk, rest, card

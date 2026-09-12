@@ -45,11 +45,19 @@ class Orch(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length") or "0")
         body = self.rfile.read(n) if n else b""
         nonce = self.headers.get("X-Umbra-Nonce", "")
-        if path != "/eval":
+        ctype = (self.headers.get("Content-Type") or "").lower()
+        if path in ("/s1", "/nonce") or ctype.startswith("text/") or "json" in ctype:
+            self._send(400, b"plaintext rejected", {"X-Umbra-Nonce": nonce} if nonce else None)
+            return
+        if path == "/eval3":
+            up = os.environ.get("UMBRA_P3_UPSTREAM", "http://10.20.0.5:8087")
+        elif path == "/eval":
+            up = UPSTREAM
+        else:
             self._send(404, b"no", {"X-Umbra-Nonce": nonce} if nonce else None)
             return
         req = urllib.request.Request(
-            UPSTREAM.rstrip("/") + "/eval",
+            up.rstrip("/") + "/eval",
             data=body,
             method="POST",
             headers={"X-Umbra-Nonce": nonce, "Content-Type": "application/octet-stream"},

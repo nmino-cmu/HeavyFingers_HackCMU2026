@@ -5,6 +5,8 @@ umbra/.env
 *.sk
 client.zip
 umbra/artifacts/
+umbra/artifacts-p3/
+umbra/artifacts-p3-mac/
 .venv-umbra/
 .artifacts/
 **/__pycache__/

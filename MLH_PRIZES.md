@@ -6,7 +6,7 @@ Verbatim official wording: `@MLH_OFFICIAL_TRANSCRIPT.md`. Do not treat the globa
 
 Event: **HackCMU 2026 — Midnight Express** (Carnegie Mellon, 24 hours, beginner-friendly).  
 Dates: **Fri Sep 11 – Sat Sep 12, 2026**.  
-Submission: **Sat Sep 12, 4:00pm EDT** (Google Form, "Baggage Check") then **Platform Showcase 4:00–6:30pm**.
+Submission: **Sat Sep 12, 4:00pm EDT** (Google Form, "Baggage Check") then **Platform Showcase 4:00–6:30pm**. **3 min** demo.
 
 Official pages:
 
@@ -14,25 +14,31 @@ Official pages:
 - Devpost: https://hack-cmu-2026.devpost.com/
 - HackCMU MLH prizes (this event only): https://www.mlh.com/events/hackcmu/prizes
 - MLH global prize catalog (superset, not HackCMU-specific): https://www.mlh.com/events/prizes
-- Organizer email: rachelto@andrew.cmu.edu
+- Discord: **acmatcmu** (opening slides posted there)
+- Organizer email: acm-exec@cs.cmu.edu · Devpost: rachelto@andrew.cmu.edu
 
-Source of this briefing: forwarded MLH email to `ahuynh@andrew.cmu.edu` dated Thu Sep 10, 2026, cross-checked against HackCMU Devpost and a full crawl of the HackCMU prizes page + each `Build with` partner page + their linked docs on Sep 11, 2026.
+Source of this briefing: forwarded MLH email to `ahuynh@andrew.cmu.edu` dated Thu Sep 10, 2026, crawl of HackCMU prizes + partner pages on Sep 11, 2026, **plus Opening Ceremony deck Fri Sep 11**. Full prize table: `@HACKCMU_PRIZES_TRACKS.md`.
 
 ---
 
 ## How prizes work at this event (read this first)
 
-There are **three independent prize layers**. One project can compete in all three.
+Opening ceremony prize list (stackable):
 
-1. **HackCMU track prizes** — You pick **one track** at submit time plus a **50-word** "why this track" blurb. Tracks are announced at **Opening Ceremony, Fri 6:00–6:30pm**. Prize depth scales with how many teams pick that track (popular track → 1st/2nd/3rd; sparse track → maybe only 1st).
-2. **HackCMU overall winner** — One grand prize across all projects.
-3. **MLH sponsor "Best Use of X"** — **Not restricted to any track.** Separate from HackCMU judging. You win by actually using that sponsor's tech in a way that is demoable and more than a checkbox import.
+1. **Grand Prize** — HRT Poker Set.
+2. **Track prizes** — Pick **one** of Optimization / Traveling / Multiplayer / Food + 50-word why. 1st: mini projector + Jump AirPods Pro. 2nd: Visa swag bags. 3rd: keyboard + keychain. Sparse track may drop to 1st only (event FAQ).
+3. **IFM Prize (optional)** — IFM Kindle Lite. IFM is **not** required as your track. Use K2 / IFM tools. Workshop Fri 9–10pm TEP 1403.
+4. **Cursor Prize** — Cursor keyboards. Bar not stated.
+5. **Sandia Prize: Cybersecurity** — AirPods with noise cancellation.
+6. **People’s Favorite** — Ticket to Ride.
+7. **Best Design** — Fujifilm QuickSnap camera.
+8. **MLH sponsor "Best Use of X"** — **Not restricted to any track.** Demo that sponsor. Six categories only (opening did not add more).
 
-HackCMU judging criteria (track + overall): **real-life usefulness, technological complexity, originality, presentation/demo quality.**
+HackCMU judging (opening): **Originality, Technical Difficulty, Demo Quality, Usefulness,** plus **Relevance (track only).** Demo **under 3 minutes.** Must be **from scratch.** Any language / AI.
 
 MLH "Best Use" judging is typically: did you use the product for real, is it central to the demo, and is it more interesting than a login button / a single TTS line / a hello-world insert. One winning team per category is the usual pattern; some prizes are **one unit per teammate**, some are a **kit for the team**. Brands of earbuds/headphones/screens were not named.
 
-**You can stack.** A project that talks, stores data, logs people in, and calls Gemini can be entered for multiple MLH categories at once. Do not add a sponsor just to "be eligible" if it will not show in the 2-minute demo.
+**You can stack.** A project that talks, stores data, logs people in, and calls Gemini can be entered for multiple MLH categories at once. Do not add a sponsor just to "be eligible" if it will not show in the **3-minute** demo.
 
 GitHub Copilot is a **workshop / mini-event**, not a prize category. See the last section.
 
@@ -227,9 +233,9 @@ Use Copilot if you want. It does not win an MLH prize by itself.
 
 ## Not at HackCMU (do not plan around these)
 
-The global MLH page ([Prizes & Freebies](https://www.mlh.com/events/prizes)) also lists Tiger Data (Stream Deck Mini), Presage (Fitbit Inspire), a generic Gen AI category, Backboard (Tile pack), DigitalOcean (retro mouse), Snowflake (Pi 4), .TECH (mic + domain), GoDaddy (gift card + Software Lab free 1-year domain at [tech.study](https://www.tech.study/)). **None of these are on [HackCMU’s MLH prizes page](https://www.mlh.com/events/hackcmu/prizes) or HackCMU Devpost.** Ignore unless the on-site MLH table or opening ceremony adds them.
+The global MLH page ([Prizes & Freebies](https://www.mlh.com/events/prizes)) also lists Tiger Data (Stream Deck Mini), Presage (Fitbit Inspire), a generic Gen AI category, Backboard (Tile pack), DigitalOcean (retro mouse), Snowflake (Pi 4), .TECH (mic + domain), GoDaddy (gift card + Software Lab free 1-year domain at [tech.study](https://www.tech.study/)). **None of these are on [HackCMU’s MLH prizes page](https://www.mlh.com/events/hackcmu/prizes), HackCMU Devpost, or the opening deck.**
 
-Devpost (https://hack-cmu-2026.devpost.com/) lists **Overall Winner** plus the same six MLH categories, each tagged **1 winner** (the team). Per-person hardware is only in the blurb. Event site has no prize table; Saturday submit is a **Google Form** (“Baggage Check”) whose URL is not on the site.
+Devpost still lists **Overall Winner** + the six MLH categories (each **1 winner** / team). Opening **named** the grand prize (HRT Poker Set) and the rest of the HackCMU objects — see `@HACKCMU_PRIZES_TRACKS.md`. Saturday submit is a **Google Form** (“Baggage Check”); URL is on Discord, not the public site.
 
 ---
 
@@ -261,14 +267,16 @@ If the product is a talking agent: **Gemini + ElevenLabs + Auth0 + MongoDB** is 
 
 ## Unknowns to confirm on site (do not invent)
 
-- Exact earbud / headphone / portable-screen models.
-- Exact M5Stack SKU (M5GO vs another kit).
-- Prize shipping: https://hackp.ac/address Typeform is **closed** (“migrated to MyMLH”). Use https://my.mlh.io/settings for address + t-shirt. Confirm at the MLH table if they still want a paper form.
-- Hardware Lab: page still lists Pico / Arduino / Echo / Home Mini. API has an **inactive** “no Hardware Lab at this event” notice. Ask the MLH table; do not assume devices are out.
-- ElevenLabs promo **code** (email-only; partner page has the 4 steps, not the string).
-- Vultr **gift code string** (from MLH Coach). Amount and claim path are now known: $100 via `mlh.link/vultr-giftcode`.
-- Whether any extra MLH categories get added at opening ceremony. API list on the prizes page is still the six above.
+- Exact MLH earbud / headphone / portable-screen models and M5Stack SKU.
+- Prize shipping: https://hackp.ac/address Typeform is **closed** (“migrated to MyMLH”). Use https://my.mlh.io/settings. Confirm at the MLH table if they still want a paper form.
+- Hardware Lab: page still lists Pico / Arduino / Echo / Home Mini. API has an **inactive** “no Hardware Lab at this event” notice. Ask the MLH table.
+- ElevenLabs promo **code** (email-only).
+- Vultr **gift code string** (from MLH Coach). $100 via `mlh.link/vultr-giftcode`.
+- Cursor Prize and Sandia Cybersecurity **exact bars** (opening named the prizes, not the rubrics).
+- Whether the Google Form lists **IFM** as a fifth track pick or only the extra Kindle prize.
 - Which Auth0 MAU number they will cite if asked (prize page 7,000 vs auth0.com 25,000).
+
+Opening **did** name HackCMU physical prizes (grand / tracks / IFM / Cursor / Sandia / People’s Favorite / Best Design) and did **not** add extra MLH categories.
 
 ---
 
@@ -277,7 +285,7 @@ If the product is a talking agent: **Gemini + ElevenLabs + Auth0 + MongoDB** is 
 ```
 Read @HACKCMU_RESOURCES.md and @HACKCMU_PRIZES_TRACKS.md first. @MLH_PRIZES.md is the longer briefing; @MLH_OFFICIAL_TRANSCRIPT.md is verbatim official copy.
 
-We are at HackCMU (24h, submit Sat 4pm EDT). MLH "Best Use" prizes are separate from HackCMU tracks and can be stacked.
+We are at HackCMU (24h, hacking started Fri 9pm, submit Sat 4pm EDT, 3 min demo). Tracks: Optimization / Traveling / Multiplayer / Food. IFM is optional (K2 → Kindle). Also Cursor, Sandia cybersecurity, People’s Favorite, Best Design, Grand Prize. MLH Best Use stacks separately.
 
 When proposing or building, tell me which MLH categories we are honestly qualifying for, which integrations are load-bearing in the demo, and which we should skip. Do not add a sponsor as a checkbox.
 

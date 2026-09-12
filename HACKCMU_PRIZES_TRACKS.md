@@ -1,105 +1,99 @@
 # HackCMU 2026 — prizes and tracks
 
-Confirmed for **this** event only (Midnight Express, Fri Sep 11 – Sat Sep 12, 2026).  
-Sources: [event site](https://www.acmatcmu.com/hackcmu2026/) JS (still live as of Fri 7:50pm EDT), [Devpost](https://hack-cmu-2026.devpost.com/), [MLH HackCMU prizes](https://www.mlh.com/events/hackcmu/prizes).  
-Did **not** import HackCMU 2025 track names.
+Confirmed for **this** event (Midnight Express, Fri Sep 11 – Sat Sep 12, 2026).  
+Primary source: **Opening Ceremony deck** (posted on Discord). Also: [event site](https://www.acmatcmu.com/hackcmu2026/), [Devpost](https://hack-cmu-2026.devpost.com/), [MLH HackCMU prizes](https://www.mlh.com/events/hackcmu/prizes).
 
 Resources / APIs / credits: `HACKCMU_RESOURCES.md`.
 
 ---
 
-## Three layers (you can win more than one)
+## Prize categories (opening ceremony)
 
-| Layer | How you enter | Restriction |
+You can win more than one. Track pick is still **one** project / one themed track.
+
+| Category | Prize | How you enter |
 |---|---|---|
-| **HackCMU tracks** | Pick **one** track on the Saturday Google Form + **50-word** “why this track” | One track per project |
-| **Overall Winner** | Automatic if you submit | One grand prize across all projects |
-| **MLH Best Use of X** | Actually use that sponsor in the demo | **Not** tied to a track. Stack as many as are real. |
+| **Grand Prize** | HRT Poker Set | All submitted projects |
+| **Track 1st** | Mini projector + Jump AirPods Pro | Pick **one** track on the form |
+| **Track 2nd** | Visa swag bags | Same |
+| **Track 3rd** | Keyboard + keychain | Same |
+| **IFM Prize** | IFM Kindle Lite | Optional. Use IFM tools (K2 / etc.) — workshop Fri 9–10pm TEP 1403 |
+| **Cursor Prize** | Cursor keyboards | Opening did not state the bar. Workshop: Cursor / Grok Imagine / Grok Bot |
+| **Sandia Prize: Cybersecurity** | AirPods with noise cancellation | Cybersecurity-themed project. Opening did not state extra rules |
+| **People’s Favorite** | Ticket to Ride | Expo / audience (opening did not spell the vote) |
+| **Best Design** | Fujifilm QuickSnap camera | Design. Opening did not state extra rules |
+| **MLH Best Use** (six) | See table below | Demo that sponsor. Not track-locked |
 
-Event FAQ (verbatim):
+Event FAQ still says track depth can shrink if a track is sparse (maybe only 1st). Opening still showed 1st / 2nd / 3rd objects.
 
-> We will have prizes for each tracks. In addition, we will select an overall grand prize across all projects. We will also have sponsor-specific prizes that aren't restricted to any track.
-
-**Raffle:** you are entered if you submit by the deadline.
-
-Judging (track + overall, event site + Devpost): **real-life usefulness, technological complexity, originality, presentation/demo quality.**
+**Raffle:** entered if you submit by the deadline (event site).
 
 ---
 
 ## Tracks
 
-There are **five** track slots on the 2026 site. As of this file, the bundled JS still says:
+Pick **one** on the Saturday 4pm Google Form + **50-word** “why this track.”
 
-> Track themes will be announced during the Opening Ceremony on Friday, September 11. Teams will choose a track when submitting your project on Saturday.
+Opening listed four themed tracks, then **IFM (optional)** on the same slide. Prize list treats **Track Prizes** and **IFM Prize** as separate. Confirm on the form whether IFM is a fifth pick or only the extra Kindle prize.
 
-| Slot | Theme on the live 2026 site |
+| Track | Opening one-liner |
 |---|---|
-| Track 1 | Details for this track are coming soon. |
-| Track 2 | Details for this track are coming soon. |
-| Track 3 | Details for this track are coming soon. |
-| Track 4 | Details for this track are coming soon. |
-| Track 5 | Details for this track are coming soon. |
+| **Optimization** | “perhaps optimize something? 0.0” |
+| **Traveling** | “what does traveling mean to you? hm….” |
+| **Multiplayer** | “this is how you can meet people and touch grass :P” |
+| **Food** | “Yummy! :D” |
+| **IFM (optional)** | No track blurb. Institute of Foundation Models (MBZUAI). Separate **IFM Prize**. |
 
-Opening ceremony was **Fri 6:00–6:30pm**. If they announced names on stage and have not updated the site, write the names here when you have them:
+Clarifications (opening, verbatim meaning):
 
-| Slot | Official name (fill in from opening / Discord / form) |
-|---|---|
-| Track 1 | |
-| Track 2 | |
-| Track 3 | |
-| Track 4 | |
-| Track 5 | |
-
-**How track prizes scale** (event FAQ, verbatim idea): popular track → 1st / 2nd / 3rd; sparse track → maybe only 1st. Exact objects for 1st/2nd/3rd: **not posted**.
-
-Do not use 2025 themes (Games, Health & Sustainability, etc.) unless this year’s form says the same words.
+- Any language or AI. Any kind of app. **Must be from scratch.**
+- Fit the theme of the track you choose — **part of judging** (Relevance).
+- Fits several tracks → pick one on submit. Questions: ask organizers.
 
 ---
 
-## Overall Winner
+## Judging
 
-- Listed on **Devpost** as prize #1, **1 winner**.
-- **Not** listed on the MLH prizes page (MLH page is sponsor categories only).
-- Physical prize: **not named** (2025’s Philips monitors are a different year).
+**3 min** presentation + demo. Three rooms of judges. Spreadsheet for where / when. Expo tables for each submitted group; walk around while waiting.
+
+| Criterion | Opening gloss |
+|---|---|
+| **Originality** | Entirely novel / a fresh approach to a problem |
+| **Technical Difficulty** | Real technical challenges vs ChatGPT wrapper |
+| **Demo Quality** | Clear, understandable, **under 3 minutes** |
+| **Usefulness** | Practical and fulfills a real need |
+| **Relevance** | **Track only** — how related the idea is to the track you applied to |
+
+Older event-site / Devpost list (usefulness, complexity, originality, presentation) is the same idea minus named **Relevance**.
 
 ---
 
-## MLH sponsor prizes (HackCMU page + Devpost)
+## MLH sponsor prizes (unchanged by opening)
 
-Devpost tags each of these **1 winner** = the **team**. Some blurbs still say one unit **per teammate**.
+Devpost tags each **1 winner** = the **team**. Some blurbs still say one unit **per teammate**.
 
 | Category | Prize | Who (blurb) | Must use |
 |---|---|---|---|
 | Best Use of **Gemini API** | Google Swag Kits | 1 team (Devpost) | Gemini API, visible in the demo |
-| Best Use of **ElevenLabs** | Wireless earbuds | “your team” | Project has a live voice (TTS / agent), not a leftover MP3 |
-| Best Use of **Solana** | Ledger Nano S Plus | **each teammate** | Real **devnet** tx / wallet / program in the demo |
-| Best Use of **Vultr** | Portable screens | “you and your team” | App or job actually running on Vultr |
-| Best Use of **Auth0** | Wireless headphones | **each teammate** | Real Auth0 login or Auth0-for-Agents flow |
+| Best Use of **ElevenLabs** | Wireless earbuds | “your team” | Live voice (TTS / agent), not a leftover MP3 |
+| Best Use of **Solana** | Ledger Nano S Plus | **each teammate** | Real **devnet** tx / wallet / program |
+| Best Use of **Vultr** | Portable screens | “you and your team” | App or job actually on Vultr |
+| Best Use of **Auth0** | Wireless headphones | **each teammate** | Real Auth0 login or Auth0-for-Agents |
 | Best Use of **MongoDB Atlas** | M5Stack IoT kit | **each teammate** | Atlas read/write that persists |
 
-Earbud / headphone / screen **models** and exact M5Stack SKU: not posted. You do **not** need M5Stack or a Ledger to *enter*; those are the prizes.
+Opening did **not** add Tiger Data, DigitalOcean, Snowflake, .Tech, GoDaddy, etc.
 
-MLH “Best Use” bar in practice: the integration is load-bearing and shown on stage. A checkbox import will not win.
+MLH “Best Use” bar: integration is load-bearing and shown on stage.
 
 ---
 
 ## Not prizes at HackCMU 2026
 
-On the **global** MLH catalog only (https://www.mlh.com/events/prizes). Absent from HackCMU’s prize page and Devpost:
+On the **global** MLH catalog only. Absent from HackCMU’s MLH page, Devpost, and opening:
 
-| Category | Global prize |
-|---|---|
-| Best Use of Tiger Data | Stream Deck Mini |
-| Best Use of Presage | Fitbit Inspire & Presage Perks |
-| Best Use of Gen AI | Assorted prizes |
-| Best Use of Backboard | Tile Essentials Pack |
-| Best Use of DigitalOcean | Retro wireless mouse |
-| Best Use of Snowflake API | Raspberry Pi 4 |
-| Best .Tech Domain Name | Desktop mic + .Tech domain up to 10 years |
-| Best Domain Name from GoDaddy Registry | Digital gift card |
+Tiger Data, Presage, Gen AI, Backboard, DigitalOcean, Snowflake, .Tech, GoDaddy.
 
-GitHub Copilot = MLH workshop, not a category.  
-Event-site logos (Jane Street, Roblox, SpaceXAI, …) = recruiting sponsors, not “Best Use” prizes.
+GitHub Copilot = workshop, not a category.
 
 ---
 
@@ -107,20 +101,27 @@ Event-site logos (Jane Street, Roblox, SpaceXAI, …) = recruiting sponsors, not
 
 | What | When / where |
 |---|---|
-| Hack window | Fri Sep 11 5:00pm – Sat Sep 12 ~8:00pm (rules); **do not start building before the event** |
-| **Baggage Check** | **Sat 4:00pm EDT** — Google Form: project description + **one track** + 50-word why. Form URL **not on the site**. |
-| Devpost deadline | Sat Sep 12, 4:00pm EDT — https://hack-cmu-2026.devpost.com/ |
-| Showcase | Sat 4:00–6:30pm, Tepper Simmons |
-| Winners | Devpost dates page: Sat Sep 12, 7:00pm EDT (“Arrival” 7:00–8:00pm on the event site) |
+| Boarding | Fri 5:00–6:00pm |
+| Dinner + Sponsor Expo | Fri 7:00–9:00pm, Tepper Simmons |
+| **Hacking starts** | **Fri 9:00pm** |
+| IFM Workshop | Fri 9:00–10:00pm, TEP 1403 |
+| Cursor Workshop | Fri 10:00–10:30pm, TEP 1403 |
+| Midnight Cafe Halte | Fri 12:00–1:00am |
+| Mentor office hours | Sat 10:00am–1:00pm, TEP Simmons B |
+| Lunch | Sat 12:00–1:00pm |
+| **Baggage Check** | **Sat 4:00pm EDT** — Google Form. URL not on the site; Discord / organizers |
+| Platform Showcase | Sat 4:00–6:30pm |
+| Dinner | Sat 6:30–7:00pm |
+| Arrival (winners) | Sat 7:00–8:00pm |
 | Team size | Max **4** |
-| Eligibility | Event: all current CMU students; Devpost chips also say US / age of majority — follow organizers if those conflict |
+| Eligibility | Event: current CMU students |
 
-List every sponsor you **actually** used on the form / Devpost. Demo it; judges will not grep the repo.
+Do not start building before the event. List every sponsor you **actually** used. Demo it.
 
 ---
 
 ## What to write on the form
 
-1. **One** track (after they publish names).
-2. ≤50 words why it belongs there.
-3. Built-with: Gemini / ElevenLabs / Solana / Vultr / Auth0 / Atlas — only if it shows in the 2-minute demo.
+1. **One** themed track: Optimization / Multiplayer / Traveling / Food. Confirm whether the form also offers IFM.
+2. ≤50 words why it belongs there (Relevance).
+3. Built-with: Gemini / ElevenLabs / Solana / Vultr / Auth0 / Atlas / IFM (K2) / Cursor — only if it shows in the **3-minute** demo.

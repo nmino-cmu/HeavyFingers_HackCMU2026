@@ -11,7 +11,23 @@ Official 2026 hubs:
 - MLH partner “Build with” pages: https://www.mlh.com/partners/{gemini,elevenlabs,solana,vultr,auth0,mongodb}
 - MLH Software / Hardware / Learn tabs on the same site
 
-Verbatim crawl: `MLH_OFFICIAL_TRANSCRIPT.md`. Prize/track rules: `HACKCMU_PRIZES_TRACKS.md`.
+Verbatim crawl: `MLH_OFFICIAL_TRANSCRIPT.md`. Prize/track rules: `HACKCMU_PRIZES_TRACKS.md`.  
+Opening deck: Discord (slides posted there). Server: **acmatcmu**. Turn on announcement notifications.
+
+---
+
+## Tonight / Saturday (opening ceremony)
+
+| When | What | Where |
+|---|---|---|
+| Fri 7:00–9:00pm | Dinner + Sponsor Expo | Tepper Simmons |
+| Fri 9:00pm | Hacking starts | |
+| Fri 9:00–10:00pm | **IFM Workshop** — K2 models | TEP 1403 |
+| Fri 10:00–10:30pm | **Cursor Workshop** — Cursor, Grok Imagine, Grok Bot | TEP 1403 |
+| Fri 12:00–1:00am | Midnight Cafe Halte | |
+| Sat 10:00am–1:00pm | Mentor office hours | TEP Simmons B |
+| Sat all weekend | Remote mentor tickets (Discord) | Fullstack / FE / BE / Mobile / ML / Data / Cloud |
+| Sat 4:00pm | Baggage Check (Google Form) | Discord / organizers — URL not on the site |
 
 ---
 
@@ -26,6 +42,7 @@ Verbatim crawl: `MLH_OFFICIAL_TRANSCRIPT.md`. Prize/track rules: `HACKCMU_PRIZES
 | ElevenLabs | MLH Best Use + voice | Free tier (10k credits/mo) or MLH email promo → **3-month sub**. Key: https://elevenlabs.io/app/developers/api-keys |
 | Solana **devnet** wallet | MLH Best Use | Browser [Playground](https://beta.solpg.io/) or Phantom on **devnet**. `solana airdrop 5` or https://faucet.solana.com/. **No mainnet money.** |
 | GitHub Student Pack | Mongo $50 + Copilot + other tools | https://education.github.com/pack |
+| IFM K2 (optional prize) | IFM Kindle Lite if you actually use it | https://ifm.ai/ — workshop Fri 9pm TEP 1403 |
 | Shipping address | Swag / prize packages | Typeform at hackp.ac/address is **closed**. Use https://my.mlh.io/settings |
 
 ---
@@ -103,16 +120,41 @@ On Software Lab + the **global** MLH prize page. **Not** on HackCMU’s prize li
 
 ---
 
-## Event-site sponsors (HackCMU 2026 page)
+## Event / opening sponsors (not MLH Best Use unless listed above)
 
-These logos are on https://www.acmatcmu.com/hackcmu2026/ **Sponsors**. They are ACM@CMU / recruiting sponsors. The site does **not** give them API credits or a “Best Use” prize. Use career links if you want; do not invent a judged category.
+Opening **tabling** blurbs + event-site logos. Opening **did** give these extra judged prizes: **IFM**, **Cursor**, **Sandia (cybersecurity)**. Other logos are recruiting unless a table says otherwise.
 
-Listed in the 2026 JS bundle: a16z, Adobe, Bloomberg, Citadel, DE Shaw, Garner Health, HRT, IFM, Jane Street, Jump, Lockheed Martin, Microsoft, Quadrature, Querit, Roblox, Sandia, SCM, SpaceXAI, Texas Instruments, Visa.
+### IFM — Institute of Foundation Models (platinum)
+
+- https://ifm.ai/
+- Global AI lab (MBZUAI, launched May 2025). Abu Dhabi, Silicon Valley, Paris.
+- **K2** series: six fully open-source models. **Jais**: Arabic LLM. **PAN**: world model (embodied / simulation).
+- Workshop: Fri 9:00–10:00pm TEP 1403 — how to use K2 on your hack.
+- Prize: **IFM Kindle Lite** (optional; not a required track).
+
+### SpaceXAI / Cursor
+
+- Company behind Grok and SpaceXAI. One model family, one API. Chat, hard engineering, real-time voice, image and video.
+- Workshop: Fri 10:00–10:30pm TEP 1403 — Cursor, Grok Imagine, Grok Bot (resume / portfolio / jobs).
+- Prize: **Cursor keyboards**. Bar not stated on the slides.
+
+### Sandia
+
+- National security science/engineering lab (defense, biotech, energy, computer security, …).
+- Prize: **Sandia Prize: Cybersecurity** — AirPods with noise cancellation.
+
+### Querit
+
+- Web Search API / search infra for LLMs, agents, in-app search. Multilingual index, structured extraction, source grounding.
+- https://www.querit.ai/en — no opening prize named.
+
+### Other site logos
+
+a16z, Adobe, Bloomberg, Citadel, DE Shaw, Garner Health, HRT, Jane Street, Jump, Lockheed Martin, Microsoft, Quadrature, Roblox, SCM, Texas Instruments, Visa.
 
 Links the 2026 page actually ships:
 
 - DE Shaw: https://www.deshaw.com/ · https://www.youtube.com/@deshawgroup
-- Querit: https://www.querit.ai/en
 - Roblox careers: https://careers.roblox.com/
 - SCM intern: https://grnh.se/eyywl26a1us
 - Visa students: https://www.visa.com/students
@@ -136,8 +178,9 @@ Sponsor Expo: Fri 7:00–9:00pm, Tepper Simmons.
 
 ## People / incidents
 
+- Discord: **acmatcmu** (slides + announcements)
 - Organizers: `acm-exec@cs.cmu.edu`
 - Devpost manager: `rachelto@andrew.cmu.edu`
 - MLH CoC incidents (NA): `+1 (409) 202-6060`, `incidents@mlh.io`
 - Signup / tickets (2026 site): https://forms.gle/2ZbetvDn44GPYP6GA · FAQ ticket: https://forms.gle/XHyQMkiPM8SFS1ze6
-- Saturday **Baggage Check** Google Form URL: not posted on the site. Get it from organizers / Discord / email.
+- Saturday **Baggage Check** Google Form URL: not posted on the site. Discord / organizers.

@@ -1,6 +1,6 @@
 # HackCMU 2026 — MLH official pages (verbatim source)
 
-Crawled **Fri Sep 11, 2026** (prizes page + every chrome tab + each `Build with` partner page + linked docs + event site + Devpost). For another Cursor session: this file is the **verbatim official wording**. Judging advice and weekend stack picks live in `MLH_PRIZES.md`.
+Crawled **Fri Sep 11, 2026** (prizes page + every chrome tab + each `Build with` partner page + linked docs + event site + Devpost). **Opening Ceremony deck** added the same night (Discord). For another Cursor session: this file is the **verbatim official wording**. Judging advice and weekend stack picks live in `MLH_PRIZES.md`.
 
 `mlh.link/*` URLs return **HTTP 200** with a `<meta http-equiv="refresh">` (not a 3xx). Destinations below are the refresh targets.
 
@@ -13,6 +13,7 @@ Crawled **Fri Sep 11, 2026** (prizes page + every chrome tab + each `Build with`
 3. One section per HackCMU MLH category: prize blurb → partner “Build with” page → access/credits → first-weekend start → destinations
 4. Conflicts (pages disagree — do not invent a reconciliation)
 5. Link map
+6. Opening Ceremony deck (Fri Sep 11, 2026) — section K
 
 Quotes are official. `UNKNOWN` means no fetched page stated it.
 
@@ -772,6 +773,7 @@ Keep both sides. Do not pick a winner unless a judge or MLH Coach says so.
 11. **Devpost** marks each MLH category “1 winner” (the team). Per-person hardware is only in the prize *blurb*.
 12. **`hackp.ac/auth0-signup` on Software Lab** lands on Auth0’s **newsletter**, not tenant signup.
 13. Hardware Lab JSON has an **inactive** “no Hardware Lab at this event” notice. Visible copy still says visit the MLH table.
+14. **Opening vs older pages:** event site / Devpost still omit named HackCMU objects and the fifth judging axis (Relevance). Opening is the live list. Demo length: opening **3 min**; older briefings said 2. Hacking **starts Fri 9:00pm** (boarding is 5–6pm). IFM is **(optional)** on the tracks slide and a **separate IFM Prize**; do not invent whether the Google Form lists IFM as a fifth track.
 
 ---
 
@@ -830,3 +832,158 @@ Keep both sides. Do not pick a winner unless a judge or MLH Coach says so.
 - Devpost: https://hack-cmu-2026.devpost.com/
 - CoC: https://github.com/MLH/mlh-policies/blob/main/code-of-conduct.md
 - GoDaddy claim (not a HackCMU prize): https://www.tech.study/
+- IFM: https://ifm.ai/
+- Querit: https://www.querit.ai/en
+- Discord: acmatcmu
+
+---
+
+## K. Opening Ceremony deck (Fri Sep 11, 2026)
+
+Source: `HackCMU_2026_Opening_Ceremony.pdf` (53 slides; posted on Discord). PDF text extract; decorative “ç√” marks omitted. Slides are official ACM@CMU copy.
+
+**Title / delay:** Opening Ceremony. Delayed: 6:15PM.
+
+**Departure / contacts:** Discord (QR). acmatcmu. `acm-exec@cs.cmu.edu`. acmatcmu.com. ACM@CMU.
+
+**About ACM@CMU:** Host HACKCMU, AWAP, and HACKBERRY PI every year. Create game, websites, and servers used in hackathons. Do research, get mentorship, and more!
+
+**What is HackCMU:** 24 Hours. Teams of up to 4 people. Mentorship & Workshops. Hacking. Lots of free food. Prizes.
+
+**Schedule: Friday**
+
+- 05:00 - 06:00 pm Boarding
+- 06:00 - 06:30 pm Departure (now)
+- 07:00 - 09:00 pm Dinner + Sponsor Expo
+- 09:00 pm Hacking Starts!
+- 09:00 - 10:00 pm IFM Workshop
+- 10:00 - 10:30 pm Cursor Workshop
+- 12:00 - 1:00 am Midnight Cafe Halte
+
+**Schedule: Saturday**
+
+- 12:00 - 01:00 pm Lunch
+- 04:00 pm Baggage Check
+- 04:00 - 06:30 pm Platform Showcase
+- 06:30 - 07:00 pm Dinner
+- 07:00 - 08:00 pm Arrival
+
+**Tracks (names):** Optimization. Traveling. Multiplayer. Food. IFM (optional).
+
+**Track one-liners (slides 16–19):**
+
+- Optimization: “perhaps optimize something? 0.0”
+- Traveling: “what does traveling mean to you? hm….”
+- Multiplayer: “this is how you can meet people and touch grass :P”
+- Food: “Yummy! :D”
+
+**Clarifications**
+
+- You are welcome to use any kind of language or AI and make any kind of applications (must be from scratch).
+- Try to fit into the theme of the track you choose (part of judging criteria)
+- If you feel your project fit into multiple tracks, pick one when submitting. If you have questions about tracks, ask us!
+
+**Mentors — Office Hours & Tickets**
+
+- Live Office Hours: Saturday 10am-1pm TEP Simmons B
+- Remote Support throughout hackathon: Discord Tickets
+- Areas: Fullstack, Frontend, Backend; Mobile Dev; Machine Learning, Data Science; Cloud Dev
+
+**Sponsor Tabling — IFM**
+
+- A global AI research lab dedicated to open and independent development of frontier-class foundation models.
+- Launched in May 2025 by MBZUAI
+- Operates from advanced lab facilities in Abu Dhabi, Silicon Valley and Paris.
+- IFM's model portfolio
+  - K2 series: six fully open-source AI models
+  - Jais: the most advanced Arabic LLM
+  - PAN: the next-gen World Model for embodied reasoning and real-world simulation
+
+**Sponsor Tabling — SpaceXAI**
+
+- Company behind Grok and SpaceXAI
+- Build frontier AI models to understand the universe
+- One model family, One API
+- Frontier intelligence for useful work: chat; hard engineering; real-time voice; image and video
+
+**Sponsor Tabling — Sandia**
+
+- Delivers essential science and technology to resolve the nation's most challenging security issues and is the nation's premier science and engineering lab for national security and technology
+- Focused on cutting-edge technology, ranging from homeland defense, global security, biotechnology, and environmental preservation to energy and combustion research, computer security, and nuclear defense.
+
+**Sponsor Tabling — Querit**
+
+- Building a global Web Search API and search infrastructure for LLMs, AI agents, and in-app search
+- Transforms the open web into AI-ready knowledge through up-to-date search, structured extraction, and source grounding to answer the latest questions, make accurate judgments, and take reliable action, with unique Multilingual index
+
+**Sponsor Tabling — MLH**
+
+- The world's largest developer community
+
+**Sponsor Events — IFM Workshop**
+
+- Friday 09:00 - 10:00 pm. TEP 1403
+- Learn about IFM and how to use IFM tool’s like their K2 models to build your hackathon project.
+
+**Sponsor Events — Cursor Workshop**
+
+- Friday 10:00 - 10:30 pm. TEP 1403
+- Learn how to use SpaceXAI's tools like Cursor, Grok Imagine, and Grok Bot to build your resume, create a portfolio website, and apply to jobs in 30 minutes.
+
+**Judging**
+
+- 3 min presentation + demo
+- We will have 3 rooms of judges
+- Feel free to watch other project’s demos
+- Will have spreadsheet showing where and when you will be judged
+
+**Expo**
+
+- While waiting, walk around expo to see other people’s projects and showcase your own!
+- We will have tables set up for each group with submission
+
+**Judging Criteria** (column glosses)
+
+- Originality — Entirely novel / A fresh approach to a problem
+- Technical Difficulty — Real technical challenges vs ChatGPT wrapper
+- Demo Quality — Clear, understandable, and under 3 minutes
+- Usefulness — Practical and fulfills a real need
+- Relevance (Track only) — How related the project idea is to the track it applied to
+
+**Prize Categories:** Grand Prize. Track Prizes. IFM Prize. Cursor Prize. Sandia Prize. People’s Favorite. Best Design Prize. MLH Prizes.
+
+**Grand Prize:** HRT Poker Set
+
+**Track Prizes**
+
+- 1st Place: Mini Projector + Jump Airpod Pros
+- 2nd Place: Visa Swag Bags
+- 3rd Place: Keyboard + Keychain
+
+**Sponsor Prize / IFM:** IFM Kindle Lite
+
+**People’s Favorite Prize:** Ticket to Ride
+
+**Best Design Prize:** Fujifilm QuickSnap Camera
+
+**Cursor Prize:** Cursor Keyboards
+
+**Sandia Prize: Cybersecurity:** Airpods w/ Noise Cancellation
+
+**MLH Prizes**
+
+- Best Use of Gemini API: Google Swag Kits
+- Best Use of ElevenLabs: Wireless Earbuds
+- Best Use of Solana: Ledger Nano S Plus
+- Best Use of Vultr: Portable Screens
+- Best Use of Auth0: Wireless Headphones
+- Best Use of MongoDB Atlas: M5Stack IoT Kit
+
+**Final Things**
+
+- Join discord and turn on notifications for announcements
+- Slides are posted on the discord
+- Projects due at 4pm tomorrow (submit google form!)
+- Schedule at https://www.acmatcmu.com/hackcmu2026/
+
+**Close:** Questions? Next Stop: Sponsor Expo.

@@ -5,7 +5,7 @@
   <title>Umbra — enroll</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=face7">
+  <link rel="stylesheet" href="/style.css?v=all1">
 </head>
 <body class="desktop face-page" data-bg="face">
 <div data-umbra-bg></div>
@@ -32,14 +32,14 @@
         <button type="button" id="recVoice" hidden>Record voice</button>
         <label class="file" id="voiceFileLab" hidden for="voiceFile">Choose voice file</label>
         <button type="button" id="skipVoice" hidden>dev mode: skip voice</button>
+        <button type="button" id="snapFinger" hidden>Capture finger</button>
+        <button type="button" id="skipFinger" hidden>dev mode: skip finger</button>
         <button type="button" id="doEnroll" hidden>Save encrypted</button>
         <button type="button" id="clearCat" hidden>Clear category</button>
         <button type="button" id="skipHome" class="skip-home">Skip to home</button>
       </div>
     </div>
     <input type="file" id="voiceFile" accept="audio/*,.wav,.m4a,.mp3,.aac,.caf" hidden>
-    <div class="row" id="actRow" hidden></div>
-    <div class="row" id="afterRow" hidden></div>
     <p id="script" class="card" hidden></p>
     <div id="recDeck" hidden>
       <div class="rec-top">
@@ -52,18 +52,21 @@
     </div>
     <p id="voiceDone" class="card" hidden>Finished. Play it back, then save encrypted.</p>
     <audio id="voicePlay" controls hidden></audio>
-    <p class="muted" id="enrollCounts"></p>
     <div class="thumbs" id="thumbs"></div>
-    <p class="muted" id="rosterLine">Roster: none yet</p>
+    <div class="face-meta">
+      <p class="muted" id="enrollCounts"></p>
+      <p class="muted" id="rosterLine">Roster: none yet</p>
+      <p id="err"></p>
+    </div>
     <div class="win-resize" aria-hidden="true"></div>
   </article>
 </div>
-<script src="/umbra.js?v=qa5"></script>
+<script src="/umbra.js?v=all1"></script>
 <script src="/vendor/grain.js"></script>
 <script src="/windows.js?v=wire5"></script>
 <script>
-const FACE_POSES = ["front", "left", "right"];
-const FACE_HINT = ["Look straight at the camera", "Turn your head left", "Turn your head right"];
+const FACE_POSES = ["front", "front", "front"];
+const FACE_HINT = ["Look straight at the camera", "Hold still, still looking straight", "One more straight-on, same light"];
 const PASSAGE =
   "When the sunlight strikes raindrops in the air, they act as a prism and form a rainbow. " +
   "The rainbow is a division of white light into many beautiful colors. " +
@@ -72,9 +75,9 @@ const PASSAGE =
   "It is easy to tell the depth of a well. These days a chicken leg is a rare dish.";
 const FACE_NEED = 3;
 const VOICE_NEED = 1;
-const VOICE_MIN_MS = 8000;
-const VOICE_MS = 16000;
-const bag = {face: [], voice: []};
+const VOICE_MIN_MS = 12000;
+const VOICE_MS = 20000;
+const bag = {face: [], voice: [], print: []};
 let stream = null;
 let step = "start";
 let voiceUI = "idle";
@@ -84,9 +87,20 @@ let recClock = null;
 let recStarted = 0;
 let voiceTok = 0;
 let qaBusy = false;
+let readFaces = [];
+let readGrab = null;
+const READ_FACE_MAX = 8;
+const READ_FACE_MS = 800;
+
+function stopReadGrabs() {
+  if (readGrab) clearInterval(readGrab);
+  readGrab = null;
+}
 
 function showErr(e) {
-  if (e) console.error(e && e.message ? e.message : e);
+  const msg = String(e && e.message ? e.message : e || "");
+  document.getElementById("err").textContent = msg;
+  if (e) console.error(msg);
 }
 
 function hide(el, on) {
@@ -123,29 +137,28 @@ function stopCam() {
 }
 
 function render() {
-  const startRow = document.getElementById("startRow");
-  const after = document.getElementById("afterRow");
   const script = document.getElementById("script");
   const recDeck = document.getElementById("recDeck");
   document.getElementById("thumbs").innerHTML = "";
-  hide(startRow, false);
   hide(document.getElementById("pid"), true);
   hide(document.getElementById("begin"), true);
   hide(document.getElementById("snapFace"), true);
   hide(document.getElementById("recVoice"), true);
   hide(document.getElementById("voiceFileLab"), true);
   hide(document.getElementById("skipVoice"), true);
+  hide(document.getElementById("snapFinger"), true);
+  hide(document.getElementById("skipFinger"), true);
   hide(document.getElementById("doEnroll"), true);
   hide(document.getElementById("clearCat"), true);
   hide(script, true);
-  hide(after, true);
   hide(document.getElementById("voiceDone"), true);
   hide(document.getElementById("voicePlay"), true);
   if (voiceUI !== "rec") hide(recDeck, true);
+  document.getElementById("stage").classList.toggle("short", step === "voice");
   if (step === "start") {
     hide(document.getElementById("pid"), false);
     hide(document.getElementById("begin"), false);
-    document.getElementById("enrollHint").textContent = "Begin sign up opens the camera. Then face, then voice.";
+    document.getElementById("enrollHint").textContent = "Begin sign up opens the camera. Then face, voice, finger — one at a time.";
     document.getElementById("enrollCounts").textContent = "";
     setPlayback(null);
     return;
@@ -158,15 +171,14 @@ function render() {
     hide(document.getElementById("clearCat"), !ready);
     hide(document.getElementById("guide"), ready);
     document.getElementById("enrollHint").textContent = ready
-      ? "Three angles saved. Save encrypted to continue, or clear category to redo faces."
+      ? "Three stills saved. Next you’ll read on camera — same gaze as sign-in."
       : `Face ${n + 1} of ${FACE_NEED}: ${FACE_HINT[n]}. Fill the oval — close, centered, well lit.`;
     document.getElementById("enrollCounts").textContent = `${n} / ${FACE_NEED} faces`;
     paintThumbs("face");
     return;
   }
   if (step === "voice") {
-    hide(document.getElementById("guide"), true);
-    const ready = voiceUI === "done" || bag.voice.length >= VOICE_NEED;
+    hide(document.getElementById("guide"), voiceUI === "done");
     hide(script, false);
     script.textContent = PASSAGE;
     hide(recDeck, voiceUI !== "rec");
@@ -178,12 +190,26 @@ function render() {
     hide(document.getElementById("clearCat"), voiceUI !== "done");
     hide(document.getElementById("voicePlay"), voiceUI !== "done");
     document.getElementById("enrollHint").textContent = voiceUI === "rec"
-      ? "Recording — read the passage. Need 8s of clear speech. Stop when you finish, or wait ~16s."
+      ? "Eyes on the passage — keep reading for 12 seconds of speech. Face stays in the oval."
       : voiceUI === "done"
         ? "Finished. Play it back, then save encrypted."
-        : "Read the passage for at least 8 seconds — or choose a voice file.";
+        : "Read the passage above the camera for at least 12 seconds of clear speech.";
     document.getElementById("enrollCounts").textContent = voiceUI === "done" ? "1 passage" : "0 / 1 passage";
     paintThumbs("voice");
+    return;
+  }
+  if (step === "finger") {
+    hide(document.getElementById("guide"), true);
+    const n = bag.print.length;
+    const ready = n >= 1;
+    hide(document.getElementById("snapFinger"), ready);
+    hide(document.getElementById("skipFinger"), ready);
+    hide(document.getElementById("doEnroll"), !ready);
+    hide(document.getElementById("clearCat"), !ready);
+    document.getElementById("enrollHint").textContent = ready
+      ? "Finger saved. Save encrypted to store this person, or clear category to recapture."
+      : "Hold one fingertip close to the camera until it fills the frame, then capture.";
+    document.getElementById("enrollCounts").textContent = `${n} finger`;
     return;
   }
   document.getElementById("enrollHint").textContent = enrolledId
@@ -198,10 +224,10 @@ async function rosterLine() {
   try {
     const {people} = await Umbra.roster();
     document.getElementById("rosterLine").textContent = people.length
-      ? "Roster: " + people.map(p => `${p.id} (${p.face}f ${p.voice}v)`).join(", ")
+      ? "Roster: " + people.map(p => `${p.id} (${p.face}f ${p.voice}v ${p.print}p)`).join(", ")
       : "Roster: none yet";
   } catch (e) {
-    console.error(e && e.message ? e.message : e);
+    document.getElementById("rosterLine").textContent = String(e.message || e);
   }
 }
 
@@ -261,18 +287,28 @@ function stopClock() {
 }
 
 async function openCam() {
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error("Camera is blocked on this URL. Use http://127.0.0.1:8765/enroll");
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video: {width: {ideal: 1280}, height: {ideal: 720}}, audio: true});
+  } catch (e) {
+    stream = await navigator.mediaDevices.getUserMedia({video: {width: {ideal: 1280}, height: {ideal: 720}}, audio: false}).catch(() => { throw e; });
+  }
   const v = document.getElementById("camPreview");
-  hide(document.getElementById("stage"), false);
-  stream = await Umbra.openCam(v);
+  v.muted = true;
+  v.playsInline = true;
+  v.srcObject = new MediaStream(stream.getVideoTracks());
   hide(document.getElementById("guide"), false);
   const ph = document.querySelector(".oval-asset");
   if (ph) ph.hidden = true;
+  try { await v.play(); } catch (e) { showErr(e); }
 }
 
-// Live QA: oval goes green (#guide.ok) only while Vision sees a face for the pose we are asking for.
-// Advisory only — snap() never waits on it.
 async function tickQa() {
-  if (qaBusy || !stream || step !== "face" || bag.face.length >= FACE_NEED) return;
+  if (qaBusy || !stream) return;
+  if (step === "face" && bag.face.length >= FACE_NEED) return;
+  if (step !== "face" && !(step === "voice" && voiceUI === "rec")) return;
   qaBusy = true;
   const guide = document.getElementById("guide");
   try {
@@ -286,17 +322,34 @@ async function tickQa() {
   }
 }
 
-// Capture always saves the current cover-crop frame. QA is the live oval, not a gate.
 async function snap(kind) {
   const v = document.getElementById("camPreview");
   if (!v.srcObject) throw new Error("camera is not on");
-  const blob = await Umbra.grabCover(v);
+  const blob = await Umbra.grabFrame(v);
   if (!blob) throw new Error("no frame yet — wait a moment and try again");
   bag[kind].push(blob);
   render();
 }
 
+function dummyPrint() {
+  const c = document.createElement("canvas");
+  c.width = 320; c.height = 240;
+  const g = c.getContext("2d");
+  g.fillStyle = "#777";
+  g.fillRect(0, 0, 320, 240);
+  return new Promise((res) => c.toBlob(res, "image/jpeg", 0.85));
+}
+
+async function skipFinger() {
+  const blob = await dummyPrint();
+  if (!blob) throw new Error("skip finger failed");
+  bag.print = [blob];
+  return saveEncrypted();
+}
+
 function skipVoice() {
+  stopReadGrabs();
+  readFaces = [];
   const n = 16000;
   const f = new Float32Array(n);
   for (let i = 0; i < n; i++) f[i] = 0.08 * Math.sin(2 * Math.PI * 220 * i / 16000);
@@ -304,9 +357,10 @@ function skipVoice() {
   voiceTok += 1;
   stopClock();
   document.getElementById("stopVoice").onclick = null;
-  voiceUI = "done";
+  voiceUI = "idle";
   setPlayback(null);
-  saveEncrypted().catch(showErr);
+  step = "finger";
+  render();
 }
 
 function acceptVoice(wav) {
@@ -329,104 +383,92 @@ async function fileToWav(file) {
   return wav;
 }
 
-function pcmToWav(pcm, rate) {
-  if (!pcm.length) return null;
-  const n = pcm.reduce((a, b) => a + b.length, 0);
-  if (!n) return null;
-  const f = new Float32Array(n);
-  let o = 0;
-  pcm.forEach((b) => { f.set(b, o); o += b.length; });
-  return encodeWav(f, rate);
-}
-
 async function recordVoice() {
   const tok = ++voiceTok;
   showErr("");
+  recStarted = 0;
   voiceUI = "rec";
   render();
   document.getElementById("recLabel").textContent = "Recording";
   document.getElementById("stopVoice").textContent = "Stop";
-  startClock();
   let endRec;
   const stopped = new Promise((r) => { endRec = r; });
-  document.getElementById("stopVoice").onclick = endRec;
-  const auto = setTimeout(endRec, VOICE_MS);
-  let ctx = null;
-  try { ctx = newCtx(); ctx.resume(); } catch (e) { ctx = null; }
+  document.getElementById("stopVoice").onclick = () => {
+    if (!recStarted) {
+      voiceTok += 1;
+      voiceUI = "idle";
+      render();
+      endRec();
+      return;
+    }
+    if (Date.now() - recStarted < VOICE_MIN_MS) {
+      showErr("keep talking — need 12 seconds of clear speech");
+      return;
+    }
+    endRec();
+  };
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    clearTimeout(auto);
     throw new Error("no mic — use Choose voice file");
   }
-  const gum = navigator.mediaDevices.getUserMedia({audio: true, video: false});
-  gum.then((s) => { if (tok !== voiceTok) s.getTracks().forEach((t) => t.stop()); }).catch(() => {});
-  const mic = await Promise.race([gum, stopped.then(() => null)]);
-  if (tok !== voiceTok) {
-    if (mic) mic.getTracks().forEach((t) => t.stop());
-    return;
+  if (!stream || !stream.getAudioTracks().some((t) => t.readyState === "live")) {
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    stream = null;
+    await Promise.race([openCam(), stopped.then(() => null)]);
   }
-  const pcm = [];
-  let proc = null, rec = null, rate = (ctx && ctx.sampleRate) || 48000;
+  if (tok !== voiceTok) return;
+  const live = stream && stream.getAudioTracks().find((t) => t.readyState === "live");
+  if (!live) throw new Error("no mic — allow microphone for 127.0.0.1, or use Choose voice file");
+  const mic = new MediaStream([live.clone ? live.clone() : live]);
+  readFaces = [];
+  stopReadGrabs();
+  const snapRead = () => {
+    if (tok !== voiceTok || readFaces.length >= READ_FACE_MAX) return;
+    Umbra.grabFrame(document.getElementById("camPreview")).then((b) => {
+      if (b && tok === voiceTok && readFaces.length < READ_FACE_MAX) readFaces.push(b);
+    }).catch(() => {});
+  };
+  snapRead();
+  readGrab = setInterval(snapRead, READ_FACE_MS);
+  let ctx = null, an = null;
+  try {
+    ctx = newCtx();
+    ctx.resume();
+    an = ctx.createAnalyser();
+    an.fftSize = 2048;
+    const mute = ctx.createGain();
+    mute.gain.value = 0;
+    ctx.createMediaStreamSource(mic).connect(an);
+    an.connect(mute);
+    mute.connect(ctx.destination);
+  } catch (e) {
+    an = null;
+  }
   const chunks = [];
-  if (mic && ctx) {
-    try {
-      rate = ctx.sampleRate || rate;
-      const src = ctx.createMediaStreamSource(mic);
-      const mute = ctx.createGain();
-      mute.gain.value = 0;
-      proc = ctx.createScriptProcessor(4096, 1, 1);
-      proc.onaudioprocess = (e) => {
-        const s = e.inputBuffer.getChannelData(0);
-        pcm.push(new Float32Array(s));
-        paintLevel(s);
-      };
-      src.connect(proc);
-      proc.connect(mute);
-      mute.connect(ctx.destination);
-    } catch (e) {
-      proc = null;
-    }
-  }
-  if (mic) {
-    try {
-      rec = new MediaRecorder(mic);
-      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-      rec.start(200);
-    } catch (e) {
-      rec = null;
-    }
-  }
+  const rec = new MediaRecorder(mic);
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  const flushed = new Promise((r) => { rec.onstop = r; rec.onerror = r; });
+  rec.start();
+  startClock();
+  const auto = setTimeout(endRec, VOICE_MS);
+  const wave = new Float32Array(an ? an.fftSize : 0);
+  const meter = () => {
+    if (tok !== voiceTok || rec.state !== "recording") return;
+    an.getFloatTimeDomainData(wave);
+    paintLevel(wave);
+    requestAnimationFrame(meter);
+  };
+  if (an) meter();
   await stopped;
   clearTimeout(auto);
-  if (tok !== voiceTok) {
-    if (mic) mic.getTracks().forEach((t) => t.stop());
-    return;
-  }
+  stopReadGrabs();
   stopClock();
-  if (rec && rec.state !== "inactive") {
-    try { rec.requestData(); } catch (e) {}
-    await Promise.race([
-      new Promise((r) => { rec.onstop = r; rec.stop(); }),
-      new Promise((r) => setTimeout(r, 800)),
-    ]);
-  }
-  if (proc) try { proc.disconnect(); } catch (e) {}
+  if (rec.state !== "inactive") rec.stop();
+  await Promise.race([flushed, new Promise((r) => setTimeout(r, 3000))]);
   if (ctx) try { await ctx.close(); } catch (e) {}
-  if (mic) mic.getTracks().forEach((t) => t.stop());
+  mic.getTracks().forEach((t) => t.stop());
   if (tok !== voiceTok) return;
-  if (Date.now() - recStarted < VOICE_MIN_MS) throw new Error("keep talking — need 8 seconds of clear speech");
-  let wav = pcmToWav(pcm, rate);
-  if ((!wav || wav.size < 44 + 2) && chunks.length) {
-    try {
-      const dec = newCtx();
-      dec.resume();
-      const buf = await dec.decodeAudioData(await new Blob(chunks).arrayBuffer());
-      wav = encodeWav(buf.getChannelData(0), buf.sampleRate);
-      await dec.close();
-    } catch (e) {
-      wav = null;
-    }
-  }
-  if (!wav || wav.size < 44 + 2) throw new Error("no audio — speak, or use Choose voice file");
+  if (!chunks.length) throw new Error("no audio — speak, or use Choose voice file");
+  const wav = await fileToWav(new Blob(chunks, {type: rec.mimeType}));
   const q = await Umbra.qaVoice(wav);
   if (!q.ok) throw new Error(q.reason || "voice quality");
   acceptVoice(wav);
@@ -436,9 +478,12 @@ function clearCategory() {
   if (step === "face") bag.face = [];
   if (step === "voice") {
     bag.voice = [];
+    stopReadGrabs();
+    readFaces = [];
     voiceUI = "idle";
     setPlayback(null);
   }
+  if (step === "finger") bag.print = [];
   render();
 }
 
@@ -454,30 +499,41 @@ async function saveEncrypted() {
     if (voiceUI !== "done" || bag.voice.length < VOICE_NEED) throw new Error("need the voice passage");
     voiceUI = "idle";
     setPlayback(null);
-    const fd = new FormData();
-    bag.face.forEach((b, i) => fd.append("face", b, `face${i}.jpg`));
-    bag.voice.forEach((b, i) => fd.append("voice", b, `voice${i}.wav`));
-    const pidEl = document.getElementById("pid");
-    if (pidEl && pidEl.value.trim()) fd.append("id", pidEl.value.trim());
-    const out = await Umbra.enroll(fd);
-    enrolledId = out.id;
-    Umbra.session.set({ id: out.id, at: Date.now() });
-    stopCam();
-    location.assign("/?enrolled=" + encodeURIComponent(out.id));
+    step = "finger";
+    render();
     return;
   }
+  if (step !== "finger") return;
+  if (!bag.print.length) throw new Error("need a finger close-up");
+  const fd = new FormData();
+  bag.face.concat(readFaces).forEach((b, i) => fd.append("face", b, `face${i}.jpg`));
+  bag.voice.forEach((b, i) => fd.append("voice", b, `voice${i}.wav`));
+  bag.print.forEach((b, i) => fd.append("print", b, `print${i}.jpg`));
+  const pidEl = document.getElementById("pid");
+  if (pidEl && pidEl.value.trim()) fd.append("id", pidEl.value.trim());
+  const out = await Umbra.enroll(fd);
+  enrolledId = out.id;
+  Umbra.session.set({ id: out.id, at: Date.now() });
+  stopCam();
+  location.assign("/?enrolled=" + encodeURIComponent(out.id));
 }
 
 document.getElementById("begin").onclick = () => openCam().then(() => { step = "face"; render(); }).catch(showErr);
 document.getElementById("snapFace").onclick = () => snap("face").catch(showErr);
-document.getElementById("recVoice").onclick = () => recordVoice().catch((e) => {
+document.getElementById("snapFinger").onclick = () => snap("print").catch(showErr);
+function recFailed(e) {
   voiceTok += 1;
+  stopReadGrabs();
   stopClock();
   showErr(e);
-  voiceUI = "idle";
-  render();
-});
+  document.getElementById("recLabel").textContent = "Couldn’t record";
+  const btn = document.getElementById("stopVoice");
+  btn.textContent = "Retry";
+  btn.onclick = () => recordVoice().catch(recFailed);
+}
+document.getElementById("recVoice").onclick = () => recordVoice().catch(recFailed);
 document.getElementById("skipVoice").onclick = () => skipVoice();
+document.getElementById("skipFinger").onclick = () => skipFinger().catch(showErr);
 document.getElementById("voiceFile").onchange = (ev) => {
   const f = ev.target.files && ev.target.files[0];
   ev.target.value = "";
@@ -490,15 +546,15 @@ document.getElementById("voiceFile").onchange = (ev) => {
 };
 document.getElementById("clearCat").onclick = () => clearCategory();
 document.getElementById("doEnroll").onclick = () => saveEncrypted().catch(showErr);
-rosterLine();
-render();
-setInterval(tickQa, 400);
 document.getElementById("skipHome").onclick = () => {
   const pidEl = document.getElementById("pid");
   const id = (pidEl && pidEl.value.trim()) || (Umbra.session.get() || {}).id || "guest";
   Umbra.session.set({ id: id, at: Date.now() });
   location.assign("/home");
 };
+rosterLine();
+render();
+setInterval(tickQa, 400);
 </script>
 </body>
 </html>

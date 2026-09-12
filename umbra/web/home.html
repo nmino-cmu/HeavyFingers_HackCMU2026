@@ -20,6 +20,7 @@
   <aside class="rail">
     <button type="button" data-open-win="messages">Messages</button>
     <button type="button" data-open-win="auctions">Auctions</button>
+    <button type="button" data-open-win="escrow">Escrow</button>
     <button type="button" data-open-win="market">Marketplace</button>
   </aside>
   <div class="desk">
@@ -74,6 +75,23 @@
           <h4>Lot 08 — unused path</h4>
           <p>Closed. No plaintext names on the wire.</p>
         </div>
+      </div>
+      <div class="win-resize" aria-hidden="true"></div>
+    </article>
+
+    <article class="win" data-win="escrow" hidden data-win-preset="panel">
+      <div class="win-bar">
+        <h2>Escrow</h2>
+        <div class="win-chrome">
+          <button type="button" data-win-min aria-label="Minimize">-</button>
+          <button type="button" data-win-close aria-label="Close">X</button>
+        </div>
+      </div>
+      <div class="win-body">
+        <h3 class="desk-h">Last hop</h3>
+        <p class="desk-empty" id="lastHop">No hop yet.</p>
+        <h3 class="desk-h">Custodial escrows</h3>
+        <div id="escrowList"></div>
       </div>
       <div class="win-resize" aria-hidden="true"></div>
     </article>
@@ -133,6 +151,36 @@ async function boot() {
   } catch (e) {}
   const id = sess.id || (people[people.length - 1] && people[people.length - 1].id) || "";
   document.getElementById("who").textContent = id || "guest";
+  try {
+    const pack = await Umbra.escrows();
+    const hop = pack.last_hop || {};
+    const hopEl = document.getElementById("lastHop");
+    const explorers = hop.explorers || [];
+    hopEl.textContent = explorers.length
+      ? "Last hop · " + (hop.addrs && hop.addrs.ingress ? hop.addrs.ingress : explorers.length + " txs")
+      : "No hop yet.";
+    if (explorers[0]) {
+      hopEl.innerHTML = 'Last hop · <a href="' + explorers[0] + '" target="_blank" rel="noreferrer">explorer</a>';
+    }
+    const box = document.getElementById("escrowList");
+    box.innerHTML = "";
+    (pack.escrows || []).forEach((e) => {
+      const d = document.createElement("div");
+      d.className = "auc-row";
+      d.innerHTML =
+        "<h4>" + (e.id || "?") + " · " + (e.status || "?") + "</h4>" +
+        "<p>" + (e.amount_sol != null ? e.amount_sol + " SOL" : "") +
+        (e.deposit_explorer ? ' · <a href="' + e.deposit_explorer + '" target="_blank" rel="noreferrer">deposit</a>' : "") +
+        (e.settle_explorer ? ' · <a href="' + e.settle_explorer + '" target="_blank" rel="noreferrer">settle</a>' : "") +
+        "</p>";
+      box.appendChild(d);
+    });
+    if (!(pack.escrows || []).length) {
+      box.innerHTML = '<p class="desk-empty">None on disk.</p>';
+    }
+  } catch (e) {
+    document.getElementById("lastHop").textContent = String(e && e.message ? e.message : e);
+  }
 }
 
 boot().catch((e) => { console.error(e); });

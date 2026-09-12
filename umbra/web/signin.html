@@ -5,7 +5,7 @@
   <title>Umbra — do this</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=face7">
+  <link rel="stylesheet" href="/style.css?v=all1">
 </head>
 <body class="desktop face-page" data-bg="face">
 <div data-umbra-bg></div>
@@ -22,35 +22,52 @@
       <video id="cam" class="mirror" playsinline muted autoplay></video>
       <div id="guide" hidden><div class="oval"></div></div>
       <img class="oval-asset" id="ovalPlaceholder" src="/assets/oval.svg" width="417" height="535" alt="">
+      <video id="takePlay" controls playsinline hidden></video>
     </div>
+    <audio id="takeMic" hidden></audio>
     <div class="face-foot">
       <p id="act">
-        Place your face until it fully fits the ellipse.<br>
+        Look straight — place your face until it fully fits the ellipse.<br>
         Hit record. Say the phrase: <span id="say">_________________________</span><br>
-        Stop recording. Send.
+        Reread it for 12 seconds, wave once, then Stop. Send.
       </p>
       <div class="face-btns">
         <button type="button" id="rec" disabled>Record</button>
-        <button type="button" id="send">Send</button>
+        <button type="button" id="send" disabled>Send</button>
         <button type="button" id="skipHome" class="skip-home">Skip to home</button>
       </div>
     </div>
-    <div class="lights" id="lights"></div>
+    <div class="face-meta">
+      <div class="lights" id="lights"></div>
+      <p class="muted" id="status"></p>
+      <p id="err"></p>
+    </div>
     <div class="win-resize" aria-hidden="true"></div>
   </article>
 </div>
-<script src="/umbra.js?v=qa4"></script>
+<script src="/umbra.js?v=all1"></script>
 <script src="/vendor/grain.js"></script>
 <script src="/windows.js?v=wire5"></script>
 <script>
 let stream = null;
 let rec = null;
+let audioRec = null;
 let take = null;
+let audioTake = null;
+let recWait = null;
+let audioWait = null;
+let audioPlayUrl = null;
+let recTok = 0;
+let playUrl = null;
 let recording = false;
 let card = null;
 let pid = "";
 let locked = false;
+let recStarted = 0;
+let recClock = null;
+let armed = false;
 let qaBusy = false;
+const VOICE_MIN_MS = 12000;
 const LIGHTS = ["face", "voice", "words", "wave"];
 const LIGHT_LABEL = {face: "S3", voice: "S2", words: "S1", wave: "LV"};
 
@@ -69,14 +86,21 @@ function paintLights(state, bits) {
 }
 
 function showErr(e) {
-  if (e) console.error(e && e.message ? e.message : e);
+  const msg = String(e && e.message ? e.message : e || "");
+  document.getElementById("err").textContent = msg;
+  if (e) console.error(msg);
 }
 
 function setLocked(on, reason) {
   locked = !!on;
+  armed = armed || locked;
   document.getElementById("guide").classList.toggle("ok", locked);
-  if (!recording && stream) document.getElementById("rec").disabled = false;
-  if (reason) console.debug(reason);
+  document.getElementById("rec").disabled = !armed && !recording;
+  if (!recording && !take) {
+    document.getElementById("status").textContent = locked
+      ? "Locked. Reread the line for 12 seconds, then wave once."
+      : (reason || "Look straight — fill the oval, then reread the line for 12s and wave once.");
+  }
 }
 
 function grabJpeg() {
@@ -84,13 +108,14 @@ function grabJpeg() {
 }
 
 async function tickQa() {
-  if (recording || qaBusy || !stream) return;
+  if (recording || qaBusy || !stream || take) return;
   qaBusy = true;
   try {
     const blob = await grabJpeg();
     if (!blob) return;
     const q = await Umbra.qaFace(blob, "front");
-    setLocked(q.ok, q.reason);
+    if (take || recording) return;
+    setLocked(q.ok && q.face, q.reason);
   } catch (e) {
     setLocked(false, String(e && e.message ? e.message : e));
   } finally {
@@ -104,12 +129,12 @@ async function boot() {
     const rost = await Umbra.roster();
     const people = rost.people || [];
     if (!people.length) {
-      console.info("roster empty");
+      document.getElementById("status").textContent = "No roster yet — register first, or skip to home.";
     } else {
       pid = people[people.length - 1].id;
       const sess = Umbra.session.get();
       if (sess && sess.id && people.some((p) => p.id === sess.id)) pid = sess.id;
-      console.info("signing in as", pid);
+      document.getElementById("status").textContent = "Signing in as " + pid + ". Open the camera and fill the oval.";
     }
   } catch (e) {
     showErr(e);
@@ -124,71 +149,201 @@ async function boot() {
 
 async function openCam() {
   if (stream) return stream;
+  if (!/^(127\.0\.0\.1|localhost)$/.test(location.hostname) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error("Camera is blocked on this URL. Open http://127.0.0.1:8765/signin");
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video: {width: {ideal: 1280}, height: {ideal: 720}}, audio: false});
+  } catch (e) {
+    throw new Error("Camera blocked. Allow camera for 127.0.0.1 in the address bar (or Safari → Settings → Websites → Camera), then try again.");
+  }
   const v = document.getElementById("cam");
-  stream = await Umbra.openCam(v);
-  await Umbra.withMic(stream);
+  v.muted = true;
+  v.playsInline = true;
+  v.srcObject = stream;
   document.getElementById("ovalPlaceholder").hidden = true;
   document.getElementById("guide").hidden = false;
-  document.getElementById("rec").disabled = false;
+  try { await v.play(); } catch (e) { showErr(e); }
   setInterval(tickQa, 450);
   tickQa();
   return stream;
 }
 
+function setTake(blob) {
+  take = blob && blob.size ? blob : null;
+  if (playUrl) URL.revokeObjectURL(playUrl);
+  if (audioPlayUrl) URL.revokeObjectURL(audioPlayUrl);
+  playUrl = take ? URL.createObjectURL(take) : null;
+  audioPlayUrl = audioTake && audioTake.size ? URL.createObjectURL(audioTake) : null;
+  const p = document.getElementById("takePlay");
+  const a = document.getElementById("takeMic");
+  p.src = playUrl || "";
+  a.src = audioPlayUrl || "";
+  p.hidden = !playUrl;
+  document.getElementById("cam").hidden = !!take;
+  document.getElementById("guide").hidden = !!take;
+  document.getElementById("send").disabled = !take;
+  if (take) {
+    p.play().catch(() => {});
+    if (audioPlayUrl) a.play().catch(() => {});
+    document.getElementById("status").textContent =
+      "This clip (" + Math.round(take.size / 1024) + " KB) is what Send will upload. Play it back, then Send.";
+  }
+}
+
+function takeName(blob) {
+  const t = (blob && blob.type) || "";
+  if (t.indexOf("mp4") >= 0) return "take.mp4";
+  return "take.webm";
+}
+
+function pickMime() {
+  const opts = ["video/webm;codecs=vp8,opus", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+  for (let i = 0; i < opts.length; i++) {
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(opts[i])) return opts[i];
+  }
+  return "";
+}
+
+function pickAudioMime() {
+  const opts = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"];
+  for (let i = 0; i < opts.length; i++) {
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(opts[i])) return opts[i];
+  }
+  return "";
+}
+
+function beginRec(s) {
+  const tok = ++recTok;
+  const liveA = (s && s.getAudioTracks()) ? s.getAudioTracks().filter((t) => t.readyState === "live") : [];
+  if (!liveA.length) throw new Error("Mic blocked — nothing recorded. Allow microphone for 127.0.0.1, then Record again.");
+  const chunks = [];
+  const mime = pickMime();
+  rec = mime ? new MediaRecorder(s, {mimeType: mime, videoBitsPerSecond: 2500000}) : new MediaRecorder(s, {videoBitsPerSecond: 2500000});
+  rec.ondataavailable = (e) => { if (tok === recTok && e.data && e.data.size) chunks.push(e.data); };
+  recWait = new Promise((resolve) => {
+    rec.onstop = () => {
+      if (tok !== recTok) { resolve(null); return; }
+      setTake(new Blob(chunks, {type: rec.mimeType || mime || "video/webm"}));
+      resolve(take);
+    };
+  });
+  audioTake = null;
+  audioRec = null;
+  audioWait = Promise.resolve(null);
+  try {
+    const aStream = new MediaStream(liveA.map((t) => (t.clone ? t.clone() : t)));
+    const aMime = pickAudioMime();
+    const aChunks = [];
+    audioRec = aMime ? new MediaRecorder(aStream, {mimeType: aMime}) : new MediaRecorder(aStream);
+    audioRec.ondataavailable = (e) => { if (tok === recTok && e.data && e.data.size) aChunks.push(e.data); };
+    audioWait = new Promise((resolve) => {
+      audioRec.onstop = () => {
+        audioTake = aChunks.length ? new Blob(aChunks, {type: audioRec.mimeType || aMime || "audio/mp4"}) : null;
+        if (take) setTake(take);
+        resolve(audioTake);
+      };
+    });
+    audioRec.start(200);
+  } catch (e) {
+    audioRec = null;
+    audioWait = Promise.resolve(null);
+  }
+  setTake(null);
+  rec.start(200);
+  recording = true;
+  recStarted = Date.now();
+  if (recClock) clearInterval(recClock);
+  recClock = setInterval(() => {
+    if (!recording) return;
+    const s = Math.floor((Date.now() - recStarted) / 1000);
+    const need = Math.ceil(VOICE_MIN_MS / 1000);
+    document.getElementById("status").textContent = s < need
+      ? "Reread the line — " + s + "s / " + need + "s. Then wave once."
+      : "12s in. Wave once in front of your face, look back, then Stop.";
+  }, 200);
+  document.getElementById("cam").hidden = false;
+  document.getElementById("guide").hidden = false;
+  document.getElementById("takePlay").hidden = true;
+  document.getElementById("rec").textContent = "Stop";
+  document.getElementById("rec").disabled = false;
+  document.getElementById("send").disabled = true;
+  document.getElementById("status").textContent = "Reread the line — 0s / 12s. Then wave once.";
+}
+
+function endRec() {
+  const waits = [];
+  if (audioRec && audioRec.state !== "inactive") {
+    try { audioRec.requestData(); } catch (e) {}
+    audioRec.stop();
+    if (audioWait) waits.push(audioWait);
+  }
+  if (!rec || rec.state === "inactive") {
+    recording = false;
+    document.getElementById("rec").textContent = "Record";
+    return waits.length ? Promise.all(waits).then(() => take) : Promise.resolve(take);
+  }
+  try { rec.requestData(); } catch (e) {}
+  rec.stop();
+  recording = false;
+  document.getElementById("rec").textContent = "Record";
+  waits.push(recWait || Promise.resolve(take));
+  return Promise.all(waits).then(() => take);
+}
+
 document.getElementById("rec").onclick = () => {
   showErr("");
   if (recording) {
-    recording = false;
-    if (rec && rec.state !== "inactive") rec.stop();
-    document.getElementById("rec").textContent = "Record";
-    console.info("take saved");
-    return;
-  }
-  if (!stream) {
-    showErr("camera is not on");
-    return;
-  }
-  openCam().then((s) => {
-    const chunks = [];
-    try {
-      rec = new MediaRecorder(s);
-    } catch (e) {
-      showErr(e);
+    if (Date.now() - recStarted < VOICE_MIN_MS) {
+      showErr("keep reading — need 12 seconds of speech");
       return;
     }
-    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-    rec.onstop = () => { take = new Blob(chunks); };
-    rec.start(200);
-    recording = true;
-    take = null;
-    document.getElementById("rec").textContent = "Stop";
-    document.getElementById("rec").disabled = false;
+    if (recClock) { clearInterval(recClock); recClock = null; }
+    endRec().catch(showErr);
+    return;
+  }
+  if (!armed) {
+    showErr("no face found yet — fill the oval until it turns green");
+    return;
+  }
+  if (stream && stream.getAudioTracks().some((t) => t.readyState === "live")) {
+    try { beginRec(stream); } catch (e) { showErr(e); }
+    return;
+  }
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  stream = null;
+  navigator.mediaDevices.getUserMedia({video: {width: {ideal: 1280}, height: {ideal: 720}}, audio: true}).catch((e) => {
+    throw new Error("Mic blocked — nothing recorded. Allow microphone for 127.0.0.1 (address bar, or Safari → Settings → Websites → Microphone), then Record again. [" + ((e && e.name) || e) + "]");
+  }).then((s) => {
+    if (!s || !s.getAudioTracks().some((t) => t.readyState === "live")) {
+      throw new Error("Mic blocked — nothing recorded. Allow microphone for 127.0.0.1, then Record again.");
+    }
+    stream = s;
+    const v = document.getElementById("cam");
+    v.srcObject = s;
+    v.hidden = false;
+    v.play().catch(showErr);
+    beginRec(s);
   }).catch(showErr);
 };
 
-function stopRec() {
-  if (!recording) return Promise.resolve();
-  recording = false;
-  document.getElementById("rec").textContent = "Record";
-  if (!rec || rec.state === "inactive") return Promise.resolve();
-  return new Promise((r) => {
-    const prev = rec.onstop;
-    rec.onstop = (ev) => {
-      if (prev) prev(ev);
-      r();
-    };
-    rec.stop();
-  });
-}
-
 document.getElementById("send").onclick = () => {
   showErr("");
-  stopRec().then(() => {
-    if (!take || !take.size) throw new Error("record first");
+  if (recording && Date.now() - recStarted < VOICE_MIN_MS) {
+    showErr("keep reading — need 12 seconds of speech");
+    return;
+  }
+  if (recClock) { clearInterval(recClock); recClock = null; }
+  const pending = recording ? endRec() : Promise.resolve(take);
+  pending.then((blob) => {
+    if (!blob || !blob.size) throw new Error("record first");
+    if (blob !== take) throw new Error("preview is stale — record again");
     paintLights("run");
+    document.getElementById("status").textContent = "Sending the clip you just played. Face → Vultr FHE. Pass is face.";
     document.getElementById("send").disabled = true;
     const fd = new FormData();
-    fd.append("take", take, "take.webm");
+    fd.append("take", blob, takeName(blob));
+    if (audioTake && audioTake.size) fd.append("audio", audioTake, audioTake.type.indexOf("mp4") >= 0 ? "mic.mp4" : "mic.webm");
     fd.append("card", JSON.stringify(card || {}));
     fd.append("id", pid);
     return Umbra.verify(fd);
@@ -201,15 +356,13 @@ document.getElementById("send").onclick = () => {
     const th = out.thresh || {};
     const fl = face.l2 == null ? "—" : Number(face.l2).toFixed(1);
     const vl = voice.l2 == null ? "—" : Number(voice.l2).toFixed(2);
-    console.info("verify", {
-      ok: out.ok,
-      id: out.id,
-      faceL2: fl,
-      voiceL2: vl,
-      thresh: th,
-      heard: words.text || "",
-      ms: ms.total || 0,
-    });
+    document.getElementById("status").textContent =
+      (out.ok ? "Pass " + out.id + "." : "Finished. Green = that check passed.") +
+      " Face L2 " + fl + " / " + (th.face || "?") +
+      ". Voice L2 " + vl + " / " + (th.voice || "?") +
+      (voice.err ? " (" + voice.err + ")" : "") +
+      (words.text ? ". Heard: " + words.text : "") +
+      ". " + (ms.total || 0) + " ms";
     if (out.ok) {
       Umbra.session.set({ id: out.id || pid, at: Date.now() });
       setTimeout(() => location.assign("/home"), 900);

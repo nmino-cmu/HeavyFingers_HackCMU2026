@@ -14,6 +14,7 @@
     roster: () => j("/roster"),
     hop: () => j("/hop", { method: "POST" }),
     last: () => j("/last"),
+    escrows: () => j("/escrows"),
     enroll: (fd) => j("/enroll", { method: "POST", body: fd }),
     verify: (fd) => j("/verify", { method: "POST", body: fd }),
     session: {
@@ -36,15 +37,17 @@
       fd.append("voice", blob, "voice.wav");
       return j("/qa/voice", { method: "POST", body: fd });
     },
-    openCam: async (video) => {
+    openCam: async (video, opt) => {
       if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error("Camera is blocked on this URL. Use http://127.0.0.1:8765/");
       }
+      const videoOpt = (opt && opt.video) || { width: { ideal: 1280 }, height: { ideal: 720 } };
+      const wantAudio = !!(opt && opt.audio);
       let stream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        stream = await navigator.mediaDevices.getUserMedia({ video: videoOpt, audio: wantAudio });
       } catch (e) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }).catch(() => { throw e; });
+        stream = await navigator.mediaDevices.getUserMedia({ video: videoOpt, audio: !wantAudio }).catch(() => { throw e; });
       }
       video.muted = true;
       video.playsInline = true;
@@ -72,6 +75,15 @@
       c.width = Math.round(sw);
       c.height = Math.round(sh);
       c.getContext("2d").drawImage(v, (vw - sw) / 2, (vh - sh) / 2, sw, sh, 0, 0, c.width, c.height);
+      return new Promise((res) => c.toBlob(res, "image/jpeg", 0.92));
+    },
+    // Full sensor frame — same pixels ffmpeg sees on a recorded take. Use this for enroll templates.
+    grabFrame: (v) => {
+      if (!v || !v.videoWidth || !v.videoHeight) return Promise.resolve(null);
+      const c = document.createElement("canvas");
+      c.width = v.videoWidth;
+      c.height = v.videoHeight;
+      c.getContext("2d").drawImage(v, 0, 0);
       return new Promise((res) => c.toBlob(res, "image/jpeg", 0.92));
     },
   };

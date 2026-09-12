@@ -47,14 +47,15 @@ def main():
     check(out is None, "abort does not hop")
     check(os.path.isdir(keydir) and len(os.listdir(keydir)) == 0, "abort writes no hop keys")
 
-    html = open(os.path.join(ROOT, "umbra/web/index.html"), encoding="utf-8").read()
-    low = html.lower()
+    web = os.path.join(ROOT, "umbra/web")
+    pages = {n: open(os.path.join(web, n), encoding="utf-8").read().lower() for n in ("index.html", "home.html", "enroll.html", "signin.html")}
+    all_html = "\n".join(pages.values())
     for w in BANNED:
-        check(w not in low, f"banned: {w}")
-    check("record" in low and "upload" in low, "record/upload crop")
-    check("card" in low or "say" in low, "card text")
-    check("explorer" in low, "explorer links")
-    check("bit" in low or "s5" in low, "lights for bits")
+        check(w not in all_html, f"banned: {w}")
+    check("record" in pages["enroll.html"] and "record" in pages["signin.html"], "record on enroll/signin")
+    check("say:" in pages["signin.html"] or "card" in pages["signin.html"], "card text")
+    check("explorer" in pages["home.html"], "explorer links")
+    check("bit" in pages["signin.html"] or "s3" in pages["signin.html"], "lights for bits")
 
     ok = decide([1] * 10, [1] * 10, s1("the lazy dog fox", "lazy dog"))
     check(ok.ok, "pass")

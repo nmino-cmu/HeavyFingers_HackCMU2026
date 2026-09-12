@@ -7,18 +7,18 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from umbra.enroll_extract import FACE_N, crop_grid, image_to_grid
+from umbra.enroll_extract import FACE_N, crop_grid, image_to_grid, prep_face
 
 HERE = Path(__file__).resolve().parent
 BIN = HERE / "bin" / "vision_qa"
 SRC = HERE / "tools" / "vision_qa.swift"
 
-# Vision: +yaw = looking toward image-left = user's IRL right on the raw cam.
+# Vision: +yaw = subject turned their own left. Preview is CSS-mirrored; hints are YOUR left/right.
 # Only reject a side shot when yaw is clearly the other way. Missing yaw does not block.
 POSES = {
     "front": lambda yaw: True,
-    "left": lambda yaw: yaw <= 0.18,
-    "right": lambda yaw: yaw >= -0.18,
+    "left": lambda yaw: yaw >= -0.18,
+    "right": lambda yaw: yaw <= 0.18,
 }
 
 
@@ -96,7 +96,7 @@ def grid_for_enroll(data: bytes) -> list[float]:
     try:
         face = _largest((inspect_bytes(data).get("faces") or []))
         if face and float(face["w"]) >= 0.12:
-            return crop_grid(data, face)
+            return prep_face(crop_grid(data, face))
     except Exception:
         pass
-    return image_to_grid(data)
+    return prep_face(image_to_grid(data))

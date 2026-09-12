@@ -13,6 +13,9 @@ FACE_N = 64
 PIXELS = FACE_N * FACE_N
 VOICE_N = 16
 PRINT_N = 16
+VOICE_MIN_S = 12.0
+VOICE_PEAK_MIN = 0.10
+VOICE_RMS_MIN = 0.022
 
 
 def _parse_bmp_wh(data: bytes) -> tuple[int, int, list[float]]:
@@ -58,7 +61,20 @@ def decode_gray(data: bytes) -> tuple[int, int, list[float]]:
         return _parse_bmp_wh(dst.read_bytes())
 
 
-def crop_grid(data: bytes, box: dict, margin: float = 0.28) -> list[float]:
+def prep_face(grid: list[float]) -> list[float]:
+    """Z-score then fold back to ~[0,1]. Same fn on enroll and probe so light does not dominate L2."""
+    n = len(grid)
+    if n < 2:
+        return list(grid)
+    m = sum(grid) / n
+    var = sum((x - m) ** 2 for x in grid) / n
+    s = var ** 0.5
+    if s < 1e-3:
+        return list(grid)
+    return [0.5 + 0.25 * (x - m) / s for x in grid]
+
+
+def crop_grid(data: bytes, box: dict, margin: float = 0.18) -> list[float]:
     """Normalized box → 64×64 gray. box keys x,y,w,h in 0..1 (top-left)."""
     w, h, px = decode_gray(data)
     mx = max(0.0, float(box["x"]) - margin * float(box["w"]))
@@ -116,19 +132,9 @@ def wav_pcm(data: bytes) -> tuple[list[int], int]:
     return list(samples), int(rate)
 
 
-def wav_to_voice(data: bytes) -> list[float]:
-    """16-D log-FFT bands, mean-centered, L2-normalized. Length-invariant speaker crop."""
+def _band_vec(x, rate):
     import numpy as np
 
-    samples, rate = wav_pcm(data)
-    x = np.asarray(samples, dtype=np.float64) / 32768.0
-    env = np.abs(x)
-    thr = max(0.01, 0.12 * float(env.max() or 0))
-    hit = np.where(env > thr)[0]
-    if hit.size:
-        x = x[int(hit[0]) : int(hit[-1]) + 1]
-    if x.size < 512:
-        x = np.pad(x, (0, 512 - x.size))
     spec = np.abs(np.fft.rfft(x * np.hanning(x.size)))
     freqs = np.fft.rfftfreq(x.size, 1.0 / rate)
     hi = min(7000.0, rate / 2 - 1)
@@ -138,24 +144,50 @@ def wav_to_voice(data: bytes) -> list[float]:
         m = (freqs >= edges[i]) & (freqs < edges[i + 1])
         band = spec[m]
         vec.append(float(np.log10(float(np.mean(band * band)) + 1e-12)))
-    v = np.asarray(vec, dtype=np.float64)
+    return np.asarray(vec, dtype=np.float64)
+
+
+def wav_to_voice(data: bytes) -> list[float]:
+    """16-D log-FFT bands. Long clips: mean of 1s windows so length is used, not one global FFT."""
+    import numpy as np
+
+    samples, rate = wav_pcm(data)
+    x = np.asarray(samples, dtype=np.float64) / 32768.0
+    env = np.abs(x)
+    thr = max(0.01, 0.12 * float(env.max() or 0))
+    hit = np.where(env > thr)[0]
+    if hit.size:
+        x = x[int(hit[0]) : int(hit[-1]) + 1]
+    win = max(512, int(rate * 1.0))
+    hop = max(256, int(rate * 0.5))
+    if x.size < win:
+        if x.size < 512:
+            x = np.pad(x, (0, 512 - x.size))
+        v = _band_vec(x, rate)
+    else:
+        v = np.mean([_band_vec(x[i : i + win], rate) for i in range(0, x.size - win + 1, hop)], axis=0)
     v = v - v.mean()
     nrm = float(np.linalg.norm(v)) or 1.0
     return (v / nrm).tolist()
 
 
-def qa_voice(data: bytes, min_s: float = 6.0) -> dict:
+def qa_voice(data: bytes, min_s: float | None = None) -> dict:
+    min_s = VOICE_MIN_S if min_s is None else min_s
     samples, rate = wav_pcm(data)
     n = len(samples)
     dur = n / float(rate)
     peak = max(abs(s) for s in samples) / 32768.0
     rms = math.sqrt(sum(s * s for s in samples) / n) / 32768.0
     clip = sum(1 for s in samples if abs(s) > 32000) / n
-    ok = dur >= min_s and peak >= 0.08 and rms >= 0.018 and clip < 0.03
+    # Length is the recording itself. Counting samples above a peak-relative gate failed real 12s takes
+    # ("got 3s") because one loud syllable set the gate above normal speech; rms already rejects a silent take.
+    # 0.5s slack: the page gates Stop on wall clock and MediaRecorder starts a beat after start().
+    long_enough = dur + 0.5 >= min_s
+    ok = long_enough and peak >= VOICE_PEAK_MIN and rms >= VOICE_RMS_MIN and clip < 0.03
     reason = ""
-    if dur < min_s:
-        reason = f"need {min_s:.0f}s of speech, got {dur:.1f}s"
-    elif peak < 0.08 or rms < 0.018:
+    if not long_enough:
+        reason = f"need a {min_s:.0f}s recording, got {dur:.1f}s"
+    elif peak < VOICE_PEAK_MIN or rms < VOICE_RMS_MIN:
         reason = "too quiet — speak closer"
     elif clip >= 0.03:
         reason = "clipping — back up from the mic"

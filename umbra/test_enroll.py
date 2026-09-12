@@ -41,7 +41,7 @@ def _bmp_64(shade: int) -> bytes:
     return hdr + dib + pixels
 
 
-def _wav_tone(freq=220, seconds=0.4, rate=16000) -> bytes:
+def _wav_tone(freq=220, seconds=0.4, rate=16000, amp=12000) -> bytes:
     n = int(rate * seconds)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as w:
@@ -52,7 +52,7 @@ def _wav_tone(freq=220, seconds=0.4, rate=16000) -> bytes:
         for i in range(n):
             import math
 
-            x = int(12000 * math.sin(2 * math.pi * freq * i / rate))
+            x = int(amp * math.sin(2 * math.pi * freq * i / rate))
             frames += struct.pack("<h", x)
         w.writeframes(bytes(frames))
     return buf.getvalue()
@@ -70,19 +70,60 @@ def test_extract():
     v = wav_to_voice(_wav_tone())
     check(len(v) == 16, len(v))
     check(abs(sum(x * x for x in v) - 1.0) < 1e-3, v)
+    from umbra.enroll_extract import VOICE_MIN_S, qa_voice
+
+    check(VOICE_MIN_S >= 12, VOICE_MIN_S)
+    check(not qa_voice(_wav_tone(seconds=4))["ok"], "short clip fails qa")
+    # a real 12s take: speech-level tone plus one loud syllable. The old peak-relative gate counted only samples
+    # above 12% of that spike and said "need 12s of speech, got 3s"; length is the recording now.
+    spiky = bytearray(_wav_tone(seconds=12.5, amp=4000))
+    spiky[44 + 2 * 16000 : 44 + 2 * 16000 + 2] = struct.pack("<h", 30000)
+    q = qa_voice(bytes(spiky))
+    check(q["ok"], q)
+    check(not qa_voice(_wav_tone(seconds=12.5, amp=400))["ok"], "near-silent take still fails")
+    check(not qa_voice(_wav_tone(seconds=11.0))["ok"], "11s is not 12s")
     from umbra.enroll_extract import crop_grid
 
     boxed = crop_grid(_bmp_64(80), {"x": 0.1, "y": 0.1, "w": 0.8, "h": 0.8})
     check(len(boxed) == 4096, len(boxed))
+    from umbra.enroll_extract import prep_face
+
+    face = [(((i * 17 + 9) % 251) / 255.0) for i in range(4096)]
+    bright = [min(1.0, x + 0.25) for x in face]
+    other = [((i * 41 + 3) % 197) / 255.0 for i in range(4096)]
+    raw_same = sum((a - b) ** 2 for a, b in zip(face, bright))
+    n_same = sum((a - b) ** 2 for a, b in zip(prep_face(face), prep_face(bright)))
+    n_other = sum((a - b) ** 2 for a, b in zip(prep_face(face), prep_face(other)))
+    check(n_same < raw_same * 0.2, (n_same, raw_same))
+    check(n_same < 90, n_same)
+    check(n_other > n_same * 4, (n_same, n_other))
     from umbra.face_qa import qa_still
 
+    # green oval == Vision found a face; a flat gray frame has none
     miss = qa_still(_bmp_64(80), "front")
-    check(miss["ok"], miss)
+    check(not miss["ok"] and miss["face"] is None and miss["reason"], miss)
+    check(not qa_still(_bmp_64(80), "left")["ok"], "side pose with no face")
+    # fake a Vision box: front is green for any face; a side only goes gold when yaw is clearly the other way
+    import umbra.face_qa as fq
+
+    real_inspect = fq.inspect_bytes
+    box = {"x": 0.3, "y": 0.2, "w": 0.4, "h": 0.5, "yaw": 0.4}
+    fq.inspect_bytes = lambda data: {"faces": [box], "hands": []}
+    try:
+        hit = qa_still(b"x", "front")
+        check(hit["ok"] and hit["face"] is box and hit["yaw"] == 0.4, hit)
+        check(qa_still(b"x", "left")["ok"], "left accepts +yaw (your left)")
+        wrong = qa_still(b"x", "right")
+        check(not wrong["ok"] and wrong["face"] is box and "other way" in wrong["reason"], wrong)
+        box["yaw"] = 0.1
+        check(qa_still(b"x", "right")["ok"], "right tolerates near-front yaw")
+    finally:
+        fq.inspect_bytes = real_inspect
     from umbra.face_qa import POSES
 
     check(POSES["front"](0.0) and POSES["front"](0.5), "front always")
-    check(POSES["left"](-0.4) and POSES["left"](0.0) and not POSES["left"](0.4), "left blocks only far right")
-    check(POSES["right"](0.4) and POSES["right"](0.0) and not POSES["right"](-0.4), "right blocks only far left")
+    check(POSES["left"](0.4) and POSES["left"](0.0) and not POSES["left"](-0.4), "left blocks only far right")
+    check(POSES["right"](-0.4) and POSES["right"](0.0) and not POSES["right"](0.4), "right blocks only far left")
 
     p = image_to_print(_bmp_64(80))
     check(len(p) == 48, len(p))
@@ -285,13 +326,46 @@ def test_pages_split():
     check("dev mode: skip finger" in enroll and "function skipfinger" in enroll, "skip finger")
     recfn = enroll[enroll.find("async function recordvoice"):enroll.find("function clearcategory")]
     check(recfn.find('stopvoice").onclick') < recfn.find("getusermedia"), "stop bound before mic wait")
+    check(recfn.find("getusermedia") < recfn.find("newctx()"), "mic before audiocontext")
+    check(recfn.find("getusermedia") < recfn.find("startclock()"), "clock after mic grant")
+    # Stop during the mic grant is a cancel (clock not running), never an end-of-take with a stale recStarted
+    check(0 <= recfn.find("recstarted = 0") < recfn.find('stopvoice").onclick'), "stop during mic wait cancels")
+    check(recfn.find("rec.start()") < recfn.find("startclock()"), "clock starts with the recorder")
+    check("new mediarecorder(mic)" in recfn and "createscriptprocessor" not in enroll, "mediarecorder is the take")
+    check("createanalyser" in recfn and "paintlevel" in recfn, "live meter")
+    check("getaudiotracks" in recfn, "enroll reuses live mic")
+    check("readfaces" in enroll and "grabframe" in recfn, "reading-gaze stills while they read")
+    # Desktop face window owns the camera; passage + rec deck still sit together and shrink the view while reading.
+    check("face-view" in enroll and 'id="stage"' in enroll, "enroll camera is the face window")
+    check(enroll.find('id="script"') < enroll.find('id="recdeck"'), "passage then rec deck")
+    check('classlist.toggle("short", step === "voice")' in enroll, "small camera while reading")
+    camfn = enroll[enroll.find("async function opencam"):enroll.find("async function tickqa")]
+    gum = camfn.find("getusermedia({")
+    check(gum >= 0 and "audio: true" in camfn[gum:gum + 140], "begin asks for mic")
     check('id="card"' not in enroll, "card on enroll page")
     check("/card" not in enroll, "enroll fetches card")
     check("snapface" not in sign and "doenroll" not in sign, "enroll controls on sign-in")
     check("sign in" in sign, "sign in")
     check("/signin" in sign, "sign in goes to challenge")
     check("say:" in do and "send" in do, "challenge says what to do")
-    check("wave" in do and "oval" in do, "signin wave + oval")
+    check("look straight" in do and "oval" in do, "signin front + oval")
+    check("takeplay" in do and "settake" in do and "createobjecturl" in do, "signin plays the send blob")
+    check("rectok" in do, "stale recorder cannot overwrite take")
+    check("audio: true" in do, "one av stream for the take")
+    check('fd.append("audio"' in do, "safari mic sidecar on send")
+    check("getaudiotracks" in do, "signin retries mic if camera stream is silent")
+    # Safari: a mic request without a click fails and poisons the mic for the page, and a second getUserMedia while a
+    # camera-only stream is live is not granted. So: load is video only; Record (a click) releases the camera, then asks for both.
+    camfn = do[do.find("async function opencam"):do.find("function settake")]
+    gum = camfn.find("getusermedia({")
+    check(gum >= 0 and "audio: false" in camfn[gum:gum + 140] and "audio: true" not in camfn, "signin load asks for the mic")
+    recclick = do[do.find('getelementbyid("rec").onclick'):do.find('getelementbyid("send").onclick')]
+    gum = recclick.find("getusermedia({")
+    check(gum >= 0 and "audio: true" in recclick[gum:gum + 140], "record click asks for the mic in the gesture")
+    check(gum >= 0 and ".stop()" in recclick[:gum], "record click asks for the mic while the camera stream is live")
+    check("ensuremic" not in do and "addtrack" not in do, "signin bolts a second gum onto a live stream")
+    check("grabframe" in enroll, "enroll stores full frames like verify")
+    check('id="send" disabled' in do, "send starts gated")
     check("qaface" in do or "qa/face" in do, "signin face qa")
     check("end on your" not in do, "card finger spot blank")
     check("umbra.verify" in do or "verify(fd)" in do, "signin sends verify")
@@ -301,6 +375,17 @@ def test_pages_split():
     check("justenrolled" in sign, "just enrolled banner")
     check("stopcam" in enroll and "enrolled=" in enroll, "camera off then sign-in")
     check('paintthumbs("print")' not in enroll, "no finger preview")
+    # live QA drives the oval on both pages; capture never waits on it
+    check("setinterval(tickqa" in enroll and 'classlist.toggle("ok"' in enroll, "enroll live oval")
+    check("setinterval(tickqa" in do and 'classlist.toggle("ok"' in do, "signin live oval")
+    snapfn = enroll[enroll.find("async function snap("):enroll.find("function dummyprint")]
+    check(snapfn and "throw new error(q.reason" not in snapfn and "qaface" not in snapfn, "snap gated on qa")
+    check("q.ok && q.face" in enroll and "q.ok && q.face" in do, "green needs a face box")
+    css = open(os.path.join(ROOT, "umbra/web/style.css"), encoding="utf-8").read().lower()
+    check("#guide.ok .oval" in css and "var(--ok)" in css, "green oval rule in shared css")
+    check("#stage.short" in css or ".face-view.short" in css, "reading camera can shrink")
+    check('id="stage"' in do and "face-view" in do, "signin camera is the face window")
+    check("[hidden] { display: none !important; }" in css, "hidden rows/oval must actually hide (display:flex beats ua hidden)")
 
 
 def main():

@@ -78,6 +78,8 @@ def test_s1_words():
     check(s1("the fox dog", "fox dog") is True, "fox dog prefix")
     check(s1("the fox dog", "dog fox") is False, "swap")
     check(s1("the lazy dog", NONCE) is False, "missing word")
+    check(s1("the lazy dog box", NONCE) is True, "one whisper substitution")
+    check(s1("uh the lazy dog fox um the lazy dog fox", NONCE) is True, "one of two repeats")
 
 
 def test_decide_and_s19():

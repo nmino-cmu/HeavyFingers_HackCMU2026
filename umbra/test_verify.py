@@ -57,6 +57,23 @@ def test_split_take():
     check(audio and audio[:4] == b"RIFF", "wav")
     check(wav and os.path.isfile(wav), wav)
     check(src and os.path.isfile(src), src)
+    silent = os.path.join(td, "v.mp4")
+    wav_in = os.path.join(td, "a.wav")
+    subprocess.check_call(
+        ["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=gray:s=320x240:d=1", "-an", "-pix_fmt", "yuv420p", silent],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.check_call(
+        ["ffmpeg", "-y", "-f", "lavfi", "-i", "sine=f=440:d=1", "-ac", "1", "-ar", "16000", wav_in],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    frame2, audio2, wav2, _src2 = split_take(open(silent, "rb").read())
+    check(audio2 is None, "video-only take has no audio")
+    frame3, audio3, wav3, _src3 = split_take(open(silent, "rb").read(), open(wav_in, "rb").read())
+    check(frame3 and audio3 and audio3[:4] == b"RIFF", "sidecar mic becomes wav")
+    check(wav3 and os.path.isfile(wav3), wav3)
 
 
 def test_wave_from_l2s():
@@ -68,6 +85,41 @@ def test_wave_from_l2s():
     check(wave_from_l2s([20, 300, 25]), "you — occlude — you")
     check(wave_from_l2s([15, 18, 400, 999, 22]), "multi-frame wave")
     check(not wave_from_l2s([]), "empty")
+    src = open(os.path.join(ROOT, "umbra/verify.py"), encoding="utf-8").read()
+    check("grid_for_enroll" in src, "verify uses the enroll crop")
+    check("len(good) >= 1" in src, "one matching frame is enough")
+    check("FACE_CALLS" in src and "FACE_FRAME_N" in src, "same /face budget, more samples")
+    check("qa_voice(audio)" in src, "verify refuses short voice")
+    check("_clip_dur" in src and "_hand_on_face" in src, "wave spans the take; hand cover is local")
+
+
+def test_take_frames_dense():
+    from umbra.verify import take_frames
+
+    td = tempfile.mkdtemp()
+    mp4 = os.path.join(td, "t.mp4")
+    subprocess.check_call(
+        [
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=gray:s=320x240:d=3",
+            "-pix_fmt", "yuv420p", mp4,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    frames = take_frames(mp4)
+    check(len(frames) >= 16, f"dense samples {len(frames)}")
+    check(all(f[:2] == b"\xff\xd8" for f in frames), "jpegs")
+    long = os.path.join(td, "long.mp4")
+    subprocess.check_call(
+        [
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=gray:s=320x240:d=12",
+            "-pix_fmt", "yuv420p", long,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    wide = take_frames(long)
+    check(len(wide) >= 20, f"12s take must be sampled end-to-end {len(wide)}")
 
 
 def test_vultr_face_uses_profile():
@@ -101,6 +153,7 @@ def main():
     test_load_live()
     test_split_take()
     test_wave_from_l2s()
+    test_take_frames_dense()
     test_vultr_face_uses_profile()
     print(f"CHECKS_RUN={CHECKS_RUN}")
 

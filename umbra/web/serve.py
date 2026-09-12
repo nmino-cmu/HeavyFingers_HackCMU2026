@@ -115,6 +115,32 @@ class H(BaseHTTPRequestHandler):
 
             self._send(200, json.dumps({"people": default_roster().summary()}).encode())
             return
+        if path == "/escrows":
+            escrow_dir = ROOT / "umbra/fixtures/escrows"
+            rows = []
+            if escrow_dir.is_dir():
+                for p in sorted(escrow_dir.glob("*.json")):
+                    if p.name.endswith(".keypair.json"):
+                        continue
+                    rec = json.loads(p.read_text())
+                    rows.append(
+                        {
+                            k: rec.get(k)
+                            for k in (
+                                "id",
+                                "status",
+                                "amount_sol",
+                                "payer",
+                                "payee",
+                                "escrow_address",
+                                "deposit_explorer",
+                                "settle_explorer",
+                            )
+                        }
+                    )
+            last = json.loads(LAST.read_text()) if LAST.is_file() else {}
+            self._send(200, json.dumps({"escrows": rows, "last_hop": last}).encode())
+            return
         self._send(404, b"no")
 
     def do_POST(self):
@@ -155,9 +181,9 @@ class H(BaseHTTPRequestHandler):
             raw = self.rfile.read(n) if n else b""
             try:
                 wav = _qa_voice(self.headers.get("Content-Type", ""), raw)
-                from umbra.enroll_extract import qa_voice
+                from umbra.enroll_extract import VOICE_MIN_S, qa_voice
 
-                self._send(200, json.dumps(qa_voice(wav, min_s=6.0)).encode())
+                self._send(200, json.dumps(qa_voice(wav, min_s=VOICE_MIN_S)).encode())
             except Exception as e:
                 self._send(400, str(e).encode(), "text/plain; charset=utf-8")
             return
@@ -165,13 +191,22 @@ class H(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or "0")
             raw = self.rfile.read(n) if n else b""
             try:
-                take, card, pid = _verify_parts(self.headers.get("Content-Type", ""), raw)
+                take, card, pid, audio_side = _verify_parts(self.headers.get("Content-Type", ""), raw)
                 from umbra.verify import run
 
-                out = run(take, card, person_id=pid or "")
+                out = run(take, card, person_id=pid or "", audio_side=audio_side or None)
             except Exception as e:
                 self._send(400, str(e).encode(), "text/plain; charset=utf-8")
                 return
+            try:
+                (ROOT / "umbra/roster_data/last_verify.json").write_text(json.dumps(out))
+            except Exception:
+                pass
+            face = (out.get("lanes") or {}).get("face") or {}
+            sys.stderr.write(
+                "web verify id=%s ok=%s face=%s l2=%s bits=%s ms=%s\n"
+                % (out.get("id"), out.get("ok"), face.get("ok"), face.get("l2"), out.get("bits"), (out.get("ms") or {}).get("total"))
+            )
             self._send(200, json.dumps(out).encode())
             return
         if path == "/enroll":
@@ -241,7 +276,7 @@ def _verify_parts(content_type: str, body: bytes):
     from email.policy import default as policy
 
     msg = message_from_bytes(b"Content-Type: " + content_type.encode() + b"\r\n\r\n" + body, policy=policy)
-    take, card, pid = b"", {}, None
+    take, card, pid, audio_side = b"", {}, None, b""
     if not msg.is_multipart():
         raise ValueError("need multipart")
     for part in msg.iter_parts():
@@ -249,13 +284,15 @@ def _verify_parts(content_type: str, body: bytes):
         payload = part.get_payload(decode=True) or b""
         if name == "take" and payload:
             take = payload
+        elif name == "audio" and payload:
+            audio_side = payload
         elif name == "card" and payload:
             card = json.loads(payload.decode("utf-8", "replace") or "{}")
         elif name == "id" and payload:
             pid = payload.decode("utf-8", "replace").strip() or None
     if not take:
         raise ValueError("need a recorded take")
-    return take, card, pid
+    return take, card, pid, audio_side
 
 
 def _qa_image(content_type: str, body: bytes):

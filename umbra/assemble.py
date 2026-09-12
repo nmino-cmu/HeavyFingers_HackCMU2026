@@ -168,10 +168,18 @@ SAMPLES = (
     {
         "id": "print",
         "title": "Print S4",
-        "stack": "Concrete TFHE .xyt (OpenFHE tried)",
+        "stack": "Concrete TFHE .xyt",
         "where": "10.20.0.6:8082",
         "path": "/print",
         "slow": True,
+    },
+    {
+        "id": "print_ofhe",
+        "title": "Print OpenFHE",
+        "stack": "OpenFHE CKKS EvalSub — Mac has no wheel; worker only",
+        "where": "10.20.0.4:8092",
+        "path": "/print-ofhe",
+        "slow": False,
     },
     {
         "id": "voice",
@@ -231,6 +239,12 @@ def run_lane(name: str):
         bits, loc = got[1]
     elif name == "voice_cnn":
         bits, loc = _lane("voice_cnn", _voice_cnn)[1]
+    elif name == "print_ofhe":
+        try:
+            import openfhe  # noqa: F401
+        except Exception:
+            return {"id": name, "bits": None, "ok": False, "err": "mac_no_openfhe"}
+        return {"id": name, "bits": None, "ok": False, "err": "skip"}
     else:
         fn = dict(LANES).get(name)
         if fn is None:

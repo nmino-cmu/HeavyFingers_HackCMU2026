@@ -34,11 +34,14 @@ def main():
     from umbra.assemble import SAMPLES, run_lane
 
     check(
-        [s["id"] for s in SAMPLES] == ["choreo", "print", "voice", "voice_cnn", "face", "bid", "words"],
+        [s["id"] for s in SAMPLES]
+        == ["choreo", "print", "print_ofhe", "voice", "voice_cnn", "face", "bid", "words"],
         SAMPLES,
     )
     w = run_lane("words")
     check(w["ok"] and w["bits"] == [1], w)
+    ofhe = run_lane("print_ofhe")
+    check(ofhe["err"] in ("mac_no_openfhe", "skip"), ofhe)
     if os.environ.get("UMBRA_ASSEMBLE_LIVE") == "1":
         d, payload = run()
         check(payload["lanes"]["choreo"] is not None, f"choreo lane {payload['lanes']}")

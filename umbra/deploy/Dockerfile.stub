@@ -1,0 +1,4 @@
+FROM python:3.12-slim
+COPY stub_echo.py /stub_echo.py
+ENV UMBRA_FHE_VPC_IP=10.20.0.5
+CMD ["python3", "/stub_echo.py"]

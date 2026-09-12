@@ -16,5 +16,5 @@ VPC `ba995955-e979-4a6e-bc06-76a100949f34`.
 No `sk` / `client.zip` on any VM. No `docker build` without `</dev/null`. No `docker commit`.
 P3 sidecar restart: `/root/start-p3-sidecar.sh` on the live worker (docker exec only).
 
-Public UI (Mac `serve.py` tunneled; `sk` stays on the Mac): http://207.246.126.149.sslip.io/
-Need `serve.py` + `ssh -R` up. Restart: `umbra/deploy/web-public.sh`.
+Public UI (nginx `/var/www/umbra` on orch; `sk` stays on the Mac): http://207.246.126.149.sslip.io/
+Sync: `umbra/deploy/web-public.sh`.

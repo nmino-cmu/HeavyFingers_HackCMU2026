@@ -167,33 +167,15 @@ input[type=text] { background:var(--bg-deep); color:var(--ink); border:1px solid
   position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
 }
 .grain-layer { z-index: 1; position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.grain-film, .grain-dust {
+.grain-film {
   position: absolute; inset: 0;
   display: block;
   pointer-events: none;
-  mix-blend-mode: multiply;
   background-repeat: repeat;
-}
-.grain-film {
-  opacity: 0.2;
   background-size: 512px 512px;
-  animation: grain-drift-a 160s linear infinite;
+  opacity: 0.28;
 }
-.grain-dust {
-  opacity: 0.1;
-  background-size: 384px 384px;
-  animation: grain-drift-b 220s linear infinite reverse;
-}
-.bg-face .grain-film { opacity: 0.24; }
-.bg-face .grain-dust { opacity: 0.12; }
-@keyframes grain-drift-a {
-  from { background-position: 0 0; }
-  to { background-position: 512px 512px; }
-}
-@keyframes grain-drift-b {
-  from { background-position: 0 0; }
-  to { background-position: 384px 384px; }
-}
+.bg-face .grain-film { opacity: 0.32; }
 .bg-tile {
   position: absolute;
   width: 94px;
@@ -929,8 +911,6 @@ body.face-page .face-desk {
   .win.is-minning,
   .win.is-restoring,
   .bg-tile,
-  .grain-film,
-  .grain-dust,
   .face-view #guide.ok .oval,
   .ut-viz::after,
   .seal-viz::after,

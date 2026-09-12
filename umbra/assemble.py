@@ -133,6 +133,25 @@ def _face():
     return [bit], [1]
 
 
+def _face_conv():
+    from umbra.face_ckks_conv import (
+        decrypt_l2,
+        encrypt_im2col,
+        evk_bytes,
+        face_a,
+        match_bit,
+        new_context,
+        pack_face,
+    )
+
+    ctx = new_context()
+    a = face_a()
+    bit = match_bit(
+        decrypt_l2(ctx, post("/face-conv", pack_face(evk_bytes(ctx), encrypt_im2col(ctx, a), encrypt_im2col(ctx, a))))
+    )
+    return [bit], [1]
+
+
 def _bid():
     art = Path(os.environ.get("UMBRA_BID_ARTIFACTS", HERE / "artifacts-bid"))
     if not _zip(art):
@@ -206,6 +225,14 @@ SAMPLES = (
         "slow": False,
     },
     {
+        "id": "face_conv",
+        "title": "Face Conv+sq",
+        "stack": "TenSEAL Conv+square 16×16 (not CryptoFaceNet4)",
+        "where": "10.20.0.4:8094",
+        "path": "/face-conv",
+        "slow": False,
+    },
+    {
         "id": "bid",
         "title": "Sealed bid S24",
         "stack": "Concrete-ML Linear(2,2)",
@@ -239,6 +266,8 @@ def run_lane(name: str):
         bits, loc = got[1]
     elif name == "voice_cnn":
         bits, loc = _lane("voice_cnn", _voice_cnn)[1]
+    elif name == "face_conv":
+        bits, loc = _lane("face_conv", _face_conv)[1]
     elif name == "print_ofhe":
         try:
             import openfhe  # noqa: F401

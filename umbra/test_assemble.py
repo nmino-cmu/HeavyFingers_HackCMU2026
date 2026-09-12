@@ -35,7 +35,7 @@ def main():
 
     check(
         [s["id"] for s in SAMPLES]
-        == ["choreo", "print", "print_ofhe", "voice", "voice_cnn", "face", "bid", "words"],
+        == ["choreo", "print", "print_ofhe", "voice", "voice_cnn", "face", "face_conv", "bid", "words"],
         SAMPLES,
     )
     w = run_lane("words")

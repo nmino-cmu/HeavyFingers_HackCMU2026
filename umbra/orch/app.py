@@ -59,6 +59,7 @@ class Orch(BaseHTTPRequestHandler):
             "/audio": (os.environ.get("UMBRA_AUDIO_UPSTREAM", "http://10.20.0.7:8083"), "/audio"),
             "/audio-cnn": (os.environ.get("UMBRA_AUDIO_CNN_UPSTREAM", "http://10.20.0.7:8093"), "/audio"),
             "/face": (os.environ.get("UMBRA_FACE_UPSTREAM", "http://10.20.0.6:8084"), "/face"),
+            "/face-conv": (os.environ.get("UMBRA_FACE_CONV_UPSTREAM", "http://10.20.0.4:8094"), "/face"),
             "/bid": (os.environ.get("UMBRA_BID_UPSTREAM", "http://10.20.0.6:8085"), "/bid"),
         }
         if path not in routes:

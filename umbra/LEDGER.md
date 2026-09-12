@@ -83,6 +83,11 @@ CMake Error at CMakeLists.txt:8 (find_package):
   (SEALConfig.cmake). CryptoFaceNet4 not shipped.
 TenSEAL CKKS L2 on farm-fast 10.20.0.6:8084. test_face.py CHECKS_RUN=26 machine-id 7b4c001601ba4fbaa4aa2b236a1d0f23.
 
+ROW S3 STACKS_TRIED=cryptoface,tenseal:conv-square RESULT=VULTR_SEAL
+EVAL_HOST=vultr
+SEAL 3.6.6 + CryptoFace `cnn` binary built on farm-a. CryptoFaceNet4 `./cnn` not run (sk-on-host, Drive weights, ~269G).
+Shipped extra path: TenSEAL Conv+square 16×16 on 10.20.0.4:8094 orch /face-conv. Orchestrator A/A bit=1 A/B bit=0 plaintext 400. Live L2 :8084 untouched.
+
 ROW S24 STACKS_TRIED=concrete,openfhe RESULT=VULTR_CONCRETE
 EVAL_HOST=vultr
 MAC_FHE_PROBE=ok

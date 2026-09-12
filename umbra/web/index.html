@@ -2,194 +2,144 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Umbra — sign in</title>
-  <link rel="stylesheet" href="/style.css?v=qa3">
+  <title>Umbra</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/style.css?v=desk7">
 </head>
-<body>
-<main>
-  <h1>Umbra</h1>
-  <nav class="muted"><a href="/enroll">Enroll</a></nav>
-  <section class="card" id="justEnrolled" hidden>
-    <h2 id="enrollNum"></h2>
-    <p>Save this number to sign in later.</p>
-  </section>
-  <p class="muted">Encrypted roster stays on this laptop. Vultr only sees ciphertext during a check.</p>
+<body class="desktop" data-bg="subtle">
+<div data-umbra-bg></div>
+<header class="topbar">
+  <a class="brand" href="/"><img src="/assets/logo.png" width="94" height="43" alt="Umbra"></a>
+  <div class="top-actions">
+    <a class="win-btn" href="/enroll">Register</a>
+    <a class="win-btn" href="/signin">Log in</a>
+    <a class="win-btn skip-home" href="/home">Skip to home</a>
+  </div>
+</header>
+<div class="shell">
+  <aside class="rail" aria-hidden="true"></aside>
+  <div class="desk" id="desk">
+    <article class="win" data-win="welcome" data-win-preset="welcome">
+      <div class="win-bar">
+        <h2>New Here?</h2>
+        <div class="win-chrome">
+          <button type="button" data-win-min aria-label="Minimize">-</button>
+          <button type="button" data-win-close aria-label="Close">X</button>
+        </div>
+      </div>
+      <div class="win-body">
+        <div class="win-copy">
+          <p>Sign up. Set up your wallets.</p>
+          <p>Don't worry.</p>
+          <p>You're completely invisible.</p>
+        </div>
+        <div class="checks">
+          <ul>
+            <li>Face</li>
+            <li>Voice</li>
+          </ul>
+          <span class="tag">Fully HME</span>
+        </div>
+        <a class="win-btn cta" href="/enroll">Begin Registration</a>
+        <a class="win-btn skip-home" href="/home">Skip to home</a>
+      </div>
+      <div class="win-resize" aria-hidden="true"></div>
+    </article>
 
-  <section class="card">
-    <strong>Sign in</strong>
-    <p class="muted" id="gateHint">Enroll first, then start sign in. The challenge card stays hidden until then.</p>
-    <div class="row">
-      <button type="button" id="beginSignin">Sign in</button>
-    </div>
-  </section>
+    <section class="win" data-win="enrolled" id="justEnrolled" hidden data-win-preset="note">
+      <div class="win-bar">
+        <h2 id="enrollNum"></h2>
+        <div class="win-chrome">
+          <button type="button" data-win-min aria-label="Minimize">-</button>
+          <button type="button" data-win-close aria-label="Close">X</button>
+        </div>
+      </div>
+      <div class="win-body">
+        <p>Save this number to sign in later.</p>
+        <a class="win-btn" href="/signin">Sign in</a>
+        <a class="win-btn" href="/home">Open desk</a>
+      </div>
+      <div class="win-resize" aria-hidden="true"></div>
+    </section>
 
-  <section class="card" id="cardBox" hidden>
-    <strong>Card</strong>
-    <pre id="card"></pre>
-  </section>
-
-  <section class="card">
-    <strong>Samples</strong>
-    <p class="muted">Each Run encrypts on this laptop, posts ciphertext to orch, decrypts the bit here.</p>
-    <div class="grid" id="grid"></div>
-    <div class="row">
-      <button type="button" id="all">Run all (skip print)</button>
-    </div>
-    <p id="err"></p>
-  </section>
-
-  <section class="card">
-    <strong>Crop</strong>
-    <p class="muted">Stays on this machine. Not sent as video.</p>
-    <div class="row">
-      <button type="button" id="record">Record</button>
-      <label class="file">Upload <input id="upload" type="file" accept="video/*,image/*" hidden></label>
-    </div>
-    <video id="preview" hidden playsinline></video>
-  </section>
-
-  <section class="card">
-    <strong>AND</strong>
-    <p class="muted">Lights are decrypted bits. Words (S1) are local Whisper.</p>
-    <div class="lights" id="lights"></div>
-    <div class="row">
-      <button type="button" id="hop">Hop after pass</button>
-    </div>
-  </section>
-
-  <section class="card">
-    <strong>Explorer</strong>
-    <ol id="explorer"></ol>
-  </section>
-</main>
+    <article class="win" data-win="untrace" data-win-preset="lab">
+      <div class="win-bar">
+        <h2>Untraceability</h2>
+        <div class="win-chrome">
+          <button type="button" data-win-min aria-label="Minimize">-</button>
+          <button type="button" data-win-close aria-label="Close">X</button>
+        </div>
+      </div>
+      <div class="win-body">
+        <p class="ut-lead">You stay the same person. Nobody — including the cloud — can tie the check back to your video. Lattice FHE runs on Vultr. The secret key never leaves this laptop.</p>
+        <div class="ut-viz" aria-hidden="true">
+          <div class="ut-flow">
+            <div class="ut-box">Face + voice<span>crops stay here</span></div>
+            <div class="ut-pipe"></div>
+            <div class="ut-box ut-box-hot">CKKS encrypt<span>sk never leaves</span></div>
+            <div class="ut-pipe"></div>
+            <div class="ut-box">Vultr CPU<span>eval ciphertext</span></div>
+            <div class="ut-pipe"></div>
+            <div class="ut-box">Local decrypt<span>one match bit</span></div>
+          </div>
+          <div class="ut-cipher" id="utCipher"></div>
+          <div class="ut-wave" id="utWave"></div>
+        </div>
+        <div class="ut-cards">
+          <div class="ut-card">
+            <h3>Ciphertext roster</h3>
+            <p>Enrolled face and voice templates live as TenSEAL ciphertext on this machine. The worker never gets the stills or the wav.</p>
+          </div>
+          <div class="ut-card">
+            <h3>Homomorphic check</h3>
+            <p>A live take is encrypted here, posted as ciphertext, evaluated under CKKS on Vultr, and decrypted here as a bit. Vultr cannot read the match.</p>
+          </div>
+          <div class="ut-card">
+            <h3>Crops stay local</h3>
+            <p>Whisper, the oval lock, and the wave check run on the laptop. If a circuit cannot do it, it does not become a plaintext API in the cloud.</p>
+          </div>
+        </div>
+      </div>
+      <div class="win-resize" aria-hidden="true"></div>
+    </article>
+  </div>
+</div>
 <script src="/umbra.js"></script>
+<script src="/vendor/grain.js"></script>
+<script src="/windows.js?v=wire5"></script>
 <script>
-const LABELS = ["S5","S6","S7","S8","S9","S10","S11","S12","S13","S14","S4","S2","S3","S24","S1","S19"];
-const lights = document.getElementById("lights");
-LABELS.forEach(l => {
-  const d = document.createElement("div");
-  d.className = "bit";
-  d.textContent = l.replace("S","");
-  d.title = l;
-  lights.appendChild(d);
-});
-function setBits(bits) {
-  [...lights.children].forEach((el, i) => {
-    el.classList.toggle("on", bits[i] === 1);
-    el.classList.toggle("off", bits[i] === 0);
-  });
-}
-function pill(el, ok, text) {
-  el.textContent = text;
-  el.className = "pill " + (ok ? "ok" : "no");
-}
-const tiles = {};
-let people = [];
-
-async function showCard() {
-  const c = await Umbra.card();
-  document.getElementById("card").textContent =
-    `say:    ${c.say}\nhand:   ${c.hand}\nmotion: ${c.motion}\nwhere:  ${c.where}\nside:   ${c.side}\nend:`;
-  document.getElementById("cardBox").hidden = false;
-}
-
-async function boot() {
+(function () {
   const just = new URLSearchParams(location.search).get("enrolled");
   if (just) {
     document.getElementById("enrollNum").textContent = "Enrolled user " + just;
     document.getElementById("justEnrolled").hidden = false;
+    Umbra.session.set({ id: just, at: Date.now() });
   }
-  const rost = await Umbra.roster();
-  people = rost.people || [];
-  const btn = document.getElementById("beginSignin");
-  if (!people.length) {
-    btn.disabled = true;
-    document.getElementById("gateHint").textContent = "No one on the roster yet. Enroll first.";
-  } else {
-    btn.disabled = false;
-    document.getElementById("gateHint").textContent =
-      "Enrolled: " + people.map(p => p.id).join(", ") + ". Sign in to get a new phrase and action.";
+  const glyphs = "01ABCDEF89";
+  const cipher = document.getElementById("utCipher");
+  if (cipher) {
+    for (let i = 0; i < 96; i++) {
+      const s = document.createElement("span");
+      s.textContent = glyphs[(i * 7) % glyphs.length];
+      cipher.appendChild(s);
+    }
+    setInterval(() => {
+      const n = cipher.children[(Math.random() * cipher.children.length) | 0];
+      n.textContent = glyphs[(Math.random() * glyphs.length) | 0];
+      n.classList.toggle("on");
+    }, 90);
   }
-  const {samples} = await fetch("/samples").then(r => r.json());
-  const grid = document.getElementById("grid");
-  samples.forEach(s => {
-    const t = document.createElement("div");
-    t.className = "tile";
-    t.innerHTML = `<h3>${s.title}</h3><div class="stack">${s.stack}<br>${s.where}${s.slow ? " · ~6 min keygen" : ""}</div>
-      <div class="row"><button type="button" data-lane="${s.id}">Run</button></div>
-      <span class="pill" data-pill="${s.id}">idle</span>`;
-    grid.appendChild(t);
-    tiles[s.id] = t.querySelector("[data-pill]");
-    t.querySelector("button").onclick = () => runOne(s.id);
-  });
-}
-document.getElementById("beginSignin").onclick = () => {
-  if (!people.length) {
-    document.getElementById("err").textContent = "enroll first";
-    return;
+  const wave = document.getElementById("utWave");
+  if (wave) {
+    for (let i = 0; i < 28; i++) {
+      const b = document.createElement("i");
+      b.style.setProperty("--d", (i * 0.06) + "s");
+      b.style.setProperty("--h", (28 + ((i * 17) % 72)) + "%");
+      wave.appendChild(b);
+    }
   }
-  location.assign("/signin");
-};
-async function runOne(lane) {
-  const p = tiles[lane];
-  pill(p, false, "running");
-  document.getElementById("err").textContent = "";
-  try {
-    const out = await Umbra.sample(lane);
-    pill(p, out.ok, out.ok ? (out.bits || []).join(" ") : (out.err || "fail"));
-  } catch (e) {
-    pill(p, false, "err");
-    document.getElementById("err").textContent = String(e.message || e);
-  }
-}
-document.getElementById("all").onclick = async () => {
-  document.getElementById("err").textContent = "";
-  document.getElementById("all").disabled = true;
-  try {
-    const out = await Umbra.fixture();
-    setBits(out.bits);
-    Object.entries(out.lanes || {}).forEach(([k, bits]) => {
-      if (tiles[k]) pill(tiles[k], bits != null && bits.every(b => b === 1), bits == null ? "skip" : bits.join(" "));
-    });
-    if (out.ok) pill(tiles.words || {textContent:""}, true, "1");
-  } catch (e) {
-    document.getElementById("err").textContent = String(e.message || e);
-  }
-  document.getElementById("all").disabled = false;
-};
-document.getElementById("hop").onclick = async () => {
-  try {
-    const out = await fetch("/hop", {method:"POST"}).then(async r => {
-      if (!r.ok) throw new Error(await r.text());
-      return r.json();
-    });
-    document.getElementById("explorer").innerHTML = out.explorers.map(u => `<li><a href="${u}">${u}</a></li>`).join("");
-  } catch (e) {
-    document.getElementById("err").textContent = String(e.message || e);
-  }
-};
-document.getElementById("upload").onchange = ev => {
-  const f = ev.target.files[0];
-  if (!f) return;
-  const v = document.getElementById("preview");
-  v.classList.remove("mirror");
-  v.src = URL.createObjectURL(f);
-  v.hidden = false;
-};
-document.getElementById("record").onclick = async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-  const v = document.getElementById("preview");
-  v.classList.add("mirror");
-  v.srcObject = stream;
-  v.hidden = false;
-  v.play();
-};
-boot().catch(e => document.getElementById("err").textContent = String(e));
-fetch("/last").then(r => r.json()).then(h => {
-  if (h && h.explorers) {
-    document.getElementById("explorer").innerHTML = h.explorers.map(u => `<li><a href="${u}">${u}</a></li>`).join("");
-  }
-}).catch(() => {});
+})();
 </script>
 </body>
 </html>

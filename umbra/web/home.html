@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Umbra — desk</title>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/style.css?v=desk7">
+</head>
+<body class="desktop" data-bg="subtle">
+<div data-umbra-bg></div>
+<header class="topbar">
+  <a class="brand" href="/home"><img src="/assets/logo.png" width="94" height="43" alt="Umbra"></a>
+  <div class="top-actions">
+    <span class="who" id="who">—</span>
+    <a class="win-btn" href="/">Log out</a>
+  </div>
+</header>
+<div class="shell">
+  <aside class="rail">
+    <button type="button" data-open-win="messages">Messages</button>
+    <button type="button" data-open-win="auctions">Auctions</button>
+    <button type="button" data-open-win="market">Marketplace</button>
+  </aside>
+  <div class="desk">
+    <article class="win" data-win="messages" data-win-preset="messages">
+      <div class="win-bar">
+        <h2>Messages</h2>
+        <div class="win-chrome">
+          <button type="button" data-win-min aria-label="Minimize">-</button>
+          <button type="button" data-win-close aria-label="Close">X</button>
+        </div>
+      </div>
+      <div class="win-body" style="padding:0;">
+        <div class="msg-list">
+          <div class="msg-col" id="msgList">
+            <div class="msg-row"><div class="msg-handle">nym-7f3a</div><div class="msg-meta">sealed · 2h ago</div></div>
+            <div class="msg-row"><div class="msg-handle">veil.k9</div><div class="msg-meta">sealed · 5h ago</div></div>
+            <div class="msg-row"><div class="msg-handle">0xorbit</div><div class="msg-meta">sealed · yesterday</div></div>
+            <div class="msg-row"><div class="msg-handle">ghost-lattice</div><div class="msg-meta">sealed · yesterday</div></div>
+            <div class="msg-row"><div class="msg-handle">silent.petal</div><div class="msg-meta">sealed · 2d ago</div></div>
+            <div class="msg-row"><div class="msg-handle">hop-anon-14</div><div class="msg-meta">sealed · 3d ago</div></div>
+            <div class="msg-row"><div class="msg-handle">mask.delta</div><div class="msg-meta">sealed · 4d ago</div></div>
+            <div class="msg-row"><div class="msg-handle">cipher_2048</div><div class="msg-meta">sealed · 1w ago</div></div>
+            <div class="msg-row"><div class="msg-handle">void.relay</div><div class="msg-meta">sealed · 1w ago</div></div>
+            <div class="msg-row"><div class="msg-handle">umbra-qx</div><div class="msg-meta">sealed · 12d ago</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="win-resize" aria-hidden="true"></div>
+    </article>
+
+    <article class="win" data-win="auctions" hidden data-win-preset="panel">
+      <div class="win-bar">
+        <h2>Auctions</h2>
+        <div class="win-chrome">
+          <button type="button" data-win-min aria-label="Minimize">-</button>
+          <button type="button" data-win-close aria-label="Close">X</button>
+        </div>
+      </div>
+      <div class="win-body">
+        <h3 class="desk-h">Current auctions</h3>
+        <p class="desk-empty">None open.</p>
+        <h3 class="desk-h">Past auctions</h3>
+        <div class="auc-row">
+          <h4>Lot 19 — sealed envelope</h4>
+          <p>Closed. Winning hop 0x7c…a1. Face never left the laptop.</p>
+        </div>
+        <div class="auc-row">
+          <h4>Lot 12 — night relay</h4>
+          <p>Closed. Two bids, both ciphertext. Settled locally.</p>
+        </div>
+        <div class="auc-row">
+          <h4>Lot 08 — unused path</h4>
+          <p>Closed. No plaintext names on the wire.</p>
+        </div>
+      </div>
+      <div class="win-resize" aria-hidden="true"></div>
+    </article>
+
+    <article class="win" data-win="market" hidden data-win-preset="panel">
+      <div class="win-bar">
+        <h2>Marketplace</h2>
+        <div class="win-chrome">
+          <button type="button" data-win-min aria-label="Minimize">-</button>
+          <button type="button" data-win-close aria-label="Close">X</button>
+        </div>
+      </div>
+      <div class="win-body">
+        <div id="marketGrid" class="grid">
+          <div class="mkt-item">
+            <h4>Burner hop token</h4>
+            <p>One-use path. Does not point back at a roster id.</p>
+          </div>
+          <div class="mkt-item">
+            <h4>Dead-drop keycard</h4>
+            <p>Blank plastic. Pair it on this machine; nothing is uploaded.</p>
+          </div>
+          <div class="mkt-item">
+            <h4>Night-only relay</h4>
+            <p>Windowed ciphertext drop. Worker sees bits, not a face.</p>
+          </div>
+          <div class="mkt-item">
+            <h4>Unused veil</h4>
+            <p>Fresh nym. No prior lots, no message history.</p>
+          </div>
+          <div class="mkt-item">
+            <h4>Lattice scratch pad</h4>
+            <p>Local notes that stay off the worker. Paper, basically.</p>
+          </div>
+          <div class="mkt-item">
+            <h4>Quiet inbox</h4>
+            <p>Handles only. No display names, no avatars.</p>
+          </div>
+        </div>
+      </div>
+      <div class="win-resize" aria-hidden="true"></div>
+    </article>
+  </div>
+</div>
+<script src="/umbra.js"></script>
+<script src="/vendor/grain.js"></script>
+<script src="/windows.js?v=wire5"></script>
+<script>
+document.querySelector('a[href="/"]').addEventListener("click", () => Umbra.session.clear());
+
+async function boot() {
+  const sess = Umbra.session.get() || {};
+  let people = [];
+  try {
+    const rost = await Umbra.roster();
+    people = rost.people || [];
+  } catch (e) {}
+  const id = sess.id || (people[people.length - 1] && people[people.length - 1].id) || "";
+  document.getElementById("who").textContent = id || "guest";
+}
+
+boot().catch((e) => { console.error(e); });
+</script>
+</body>
+</html>

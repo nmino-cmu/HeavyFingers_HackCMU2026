@@ -3,32 +3,44 @@
 <head>
   <meta charset="utf-8">
   <title>Umbra — enroll</title>
-  <link rel="stylesheet" href="/style.css?v=qa5">
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/style.css?v=face7">
 </head>
-<body>
-<main>
-  <h1>Enroll</h1>
-  <nav class="muted"><a href="/">Sign in</a></nav>
-  <p class="muted" id="enrollHint">One category at a time. Begin sign up to open the camera.</p>
-  <section class="card">
-    <div class="row" id="startRow">
-      <input type="text" id="pid" placeholder="name or id (optional)" autocomplete="off">
-      <button type="button" id="begin">Begin sign up</button>
+<body class="desktop face-page" data-bg="face">
+<div data-umbra-bg></div>
+<div class="desk face-desk">
+  <article class="win face-wire" data-win="enroll" data-win-preset="face">
+    <div class="win-bar face-wire-bar">
+      <h2>Face</h2>
+      <div class="win-chrome">
+        <button type="button" data-win-min aria-label="Minimize">-</button>
+        <a class="win-btn face-x" href="/" aria-label="Close">X</a>
+      </div>
     </div>
-    <div id="stage" hidden>
+    <div class="face-view" id="stage">
       <video id="camPreview" class="mirror" playsinline muted autoplay></video>
       <div id="guide" hidden><div class="oval"></div></div>
+      <img class="oval-asset" src="/assets/oval.svg" width="417" height="535" alt="">
     </div>
+    <div class="face-foot">
+      <p class="muted" id="enrollHint">One category at a time. Begin sign up to open the camera.</p>
+      <div class="face-btns" id="startRow">
+        <input type="text" id="pid" placeholder="name or id (optional)" autocomplete="off">
+        <button type="button" id="begin">Begin sign up</button>
+        <button type="button" id="snapFace" hidden>Capture face</button>
+        <button type="button" id="recVoice" hidden>Record voice</button>
+        <label class="file" id="voiceFileLab" hidden for="voiceFile">Choose voice file</label>
+        <button type="button" id="skipVoice" hidden>dev mode: skip voice</button>
+        <button type="button" id="doEnroll" hidden>Save encrypted</button>
+        <button type="button" id="clearCat" hidden>Clear category</button>
+        <button type="button" id="skipHome" class="skip-home">Skip to home</button>
+      </div>
+    </div>
+    <input type="file" id="voiceFile" accept="audio/*,.wav,.m4a,.mp3,.aac,.caf" hidden>
+    <div class="row" id="actRow" hidden></div>
+    <div class="row" id="afterRow" hidden></div>
     <p id="script" class="card" hidden></p>
-    <div class="row" id="actRow">
-      <button type="button" id="snapFace" hidden>Capture face</button>
-      <button type="button" id="recVoice" hidden>Record voice</button>
-      <label class="file" id="voiceFileLab" hidden for="voiceFile">Choose voice file</label>
-      <input type="file" id="voiceFile" accept="audio/*,.wav,.m4a,.mp3,.aac,.caf" hidden>
-      <button type="button" id="skipVoice" hidden>dev mode: skip voice</button>
-      <button type="button" id="snapFinger" hidden>Capture finger</button>
-      <button type="button" id="skipFinger" hidden>dev mode: skip finger</button>
-    </div>
     <div id="recDeck" hidden>
       <div class="rec-top">
         <span class="rec-dot" aria-hidden="true"></span>
@@ -40,17 +52,15 @@
     </div>
     <p id="voiceDone" class="card" hidden>Finished. Play it back, then save encrypted.</p>
     <audio id="voicePlay" controls hidden></audio>
-    <div class="row" id="afterRow" hidden>
-      <button type="button" id="doEnroll">Save encrypted</button>
-      <button type="button" id="clearCat">Clear category</button>
-    </div>
     <p class="muted" id="enrollCounts"></p>
     <div class="thumbs" id="thumbs"></div>
     <p class="muted" id="rosterLine">Roster: none yet</p>
-    <p id="err"></p>
-  </section>
-</main>
+    <div class="win-resize" aria-hidden="true"></div>
+  </article>
+</div>
 <script src="/umbra.js?v=qa5"></script>
+<script src="/vendor/grain.js"></script>
+<script src="/windows.js?v=wire5"></script>
 <script>
 const FACE_POSES = ["front", "left", "right"];
 const FACE_HINT = ["Look straight at the camera", "Turn your head left", "Turn your head right"];
@@ -64,7 +74,7 @@ const FACE_NEED = 3;
 const VOICE_NEED = 1;
 const VOICE_MIN_MS = 8000;
 const VOICE_MS = 16000;
-const bag = {face: [], voice: [], print: []};
+const bag = {face: [], voice: []};
 let stream = null;
 let step = "start";
 let voiceUI = "idle";
@@ -76,7 +86,7 @@ let voiceTok = 0;
 let qaBusy = false;
 
 function showErr(e) {
-  document.getElementById("err").textContent = String(e && e.message ? e.message : e);
+  if (e) console.error(e && e.message ? e.message : e);
 }
 
 function hide(el, on) {
@@ -108,8 +118,7 @@ function stopCam() {
     stream = null;
   }
   const v = document.getElementById("camPreview");
-  v.srcObject = null;
-  hide(document.getElementById("stage"), true);
+  if (v) v.srcObject = null;
   hide(document.getElementById("guide"), true);
 }
 
@@ -119,30 +128,34 @@ function render() {
   const script = document.getElementById("script");
   const recDeck = document.getElementById("recDeck");
   document.getElementById("thumbs").innerHTML = "";
+  hide(startRow, false);
+  hide(document.getElementById("pid"), true);
+  hide(document.getElementById("begin"), true);
   hide(document.getElementById("snapFace"), true);
   hide(document.getElementById("recVoice"), true);
   hide(document.getElementById("voiceFileLab"), true);
   hide(document.getElementById("skipVoice"), true);
-  hide(document.getElementById("snapFinger"), true);
-  hide(document.getElementById("skipFinger"), true);
+  hide(document.getElementById("doEnroll"), true);
+  hide(document.getElementById("clearCat"), true);
   hide(script, true);
   hide(after, true);
   hide(document.getElementById("voiceDone"), true);
   hide(document.getElementById("voicePlay"), true);
   if (voiceUI !== "rec") hide(recDeck, true);
   if (step === "start") {
-    hide(startRow, false);
-    document.getElementById("enrollHint").textContent = "Begin sign up opens the camera. Then face, voice, finger — one at a time.";
+    hide(document.getElementById("pid"), false);
+    hide(document.getElementById("begin"), false);
+    document.getElementById("enrollHint").textContent = "Begin sign up opens the camera. Then face, then voice.";
     document.getElementById("enrollCounts").textContent = "";
     setPlayback(null);
     return;
   }
-  hide(startRow, true);
   if (step === "face") {
     const n = bag.face.length;
     const ready = n >= FACE_NEED;
     hide(document.getElementById("snapFace"), ready);
-    hide(after, !ready);
+    hide(document.getElementById("doEnroll"), !ready);
+    hide(document.getElementById("clearCat"), !ready);
     hide(document.getElementById("guide"), ready);
     document.getElementById("enrollHint").textContent = ready
       ? "Three angles saved. Save encrypted to continue, or clear category to redo faces."
@@ -161,7 +174,8 @@ function render() {
     hide(document.getElementById("voiceFileLab"), voiceUI === "done");
     hide(document.getElementById("skipVoice"), false);
     hide(document.getElementById("voiceDone"), voiceUI !== "done");
-    hide(after, voiceUI !== "done");
+    hide(document.getElementById("doEnroll"), voiceUI !== "done");
+    hide(document.getElementById("clearCat"), voiceUI !== "done");
     hide(document.getElementById("voicePlay"), voiceUI !== "done");
     document.getElementById("enrollHint").textContent = voiceUI === "rec"
       ? "Recording — read the passage. Need 8s of clear speech. Stop when you finish, or wait ~16s."
@@ -170,19 +184,6 @@ function render() {
         : "Read the passage for at least 8 seconds — or choose a voice file.";
     document.getElementById("enrollCounts").textContent = voiceUI === "done" ? "1 passage" : "0 / 1 passage";
     paintThumbs("voice");
-    return;
-  }
-  if (step === "finger") {
-    hide(document.getElementById("guide"), true);
-    const n = bag.print.length;
-    const ready = n >= 1;
-    hide(document.getElementById("snapFinger"), ready);
-    hide(document.getElementById("skipFinger"), ready);
-    hide(after, !ready);
-    document.getElementById("enrollHint").textContent = ready
-      ? "Finger saved. Save encrypted to store this person, or clear category to recapture."
-      : "Hold one fingertip close to the camera until it fills the frame, then capture.";
-    document.getElementById("enrollCounts").textContent = `${n} finger`;
     return;
   }
   document.getElementById("enrollHint").textContent = enrolledId
@@ -197,10 +198,10 @@ async function rosterLine() {
   try {
     const {people} = await Umbra.roster();
     document.getElementById("rosterLine").textContent = people.length
-      ? "Roster: " + people.map(p => `${p.id} (${p.face}f ${p.voice}v ${p.print}p)`).join(", ")
+      ? "Roster: " + people.map(p => `${p.id} (${p.face}f ${p.voice}v)`).join(", ")
       : "Roster: none yet";
   } catch (e) {
-    document.getElementById("rosterLine").textContent = String(e.message || e);
+    console.error(e && e.message ? e.message : e);
   }
 }
 
@@ -260,21 +261,12 @@ function stopClock() {
 }
 
 async function openCam() {
-  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    throw new Error("Camera is blocked on this URL. Use http://127.0.0.1:8765/enroll");
-  }
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
-  } catch (e) {
-    stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true}).catch(() => { throw e; });
-  }
   const v = document.getElementById("camPreview");
-  v.muted = true;
-  v.playsInline = true;
-  v.srcObject = new MediaStream(stream.getVideoTracks());
   hide(document.getElementById("stage"), false);
+  stream = await Umbra.openCam(v);
   hide(document.getElementById("guide"), false);
-  try { await v.play(); } catch (e) { showErr(e); }
+  const ph = document.querySelector(".oval-asset");
+  if (ph) ph.hidden = true;
 }
 
 // Live QA: oval goes green (#guide.ok) only while Vision sees a face for the pose we are asking for.
@@ -304,22 +296,6 @@ async function snap(kind) {
   render();
 }
 
-function dummyPrint() {
-  const c = document.createElement("canvas");
-  c.width = 320; c.height = 240;
-  const g = c.getContext("2d");
-  g.fillStyle = "#777";
-  g.fillRect(0, 0, 320, 240);
-  return new Promise((res) => c.toBlob(res, "image/jpeg", 0.85));
-}
-
-async function skipFinger() {
-  const blob = await dummyPrint();
-  if (!blob) throw new Error("skip finger failed");
-  bag.print = [blob];
-  return saveEncrypted();
-}
-
 function skipVoice() {
   const n = 16000;
   const f = new Float32Array(n);
@@ -328,10 +304,9 @@ function skipVoice() {
   voiceTok += 1;
   stopClock();
   document.getElementById("stopVoice").onclick = null;
-  voiceUI = "idle";
+  voiceUI = "done";
   setPlayback(null);
-  step = "finger";
-  render();
+  saveEncrypted().catch(showErr);
 }
 
 function acceptVoice(wav) {
@@ -464,7 +439,6 @@ function clearCategory() {
     voiceUI = "idle";
     setPlayback(null);
   }
-  if (step === "finger") bag.print = [];
   render();
 }
 
@@ -480,36 +454,30 @@ async function saveEncrypted() {
     if (voiceUI !== "done" || bag.voice.length < VOICE_NEED) throw new Error("need the voice passage");
     voiceUI = "idle";
     setPlayback(null);
-    step = "finger";
-    render();
+    const fd = new FormData();
+    bag.face.forEach((b, i) => fd.append("face", b, `face${i}.jpg`));
+    bag.voice.forEach((b, i) => fd.append("voice", b, `voice${i}.wav`));
+    const pidEl = document.getElementById("pid");
+    if (pidEl && pidEl.value.trim()) fd.append("id", pidEl.value.trim());
+    const out = await Umbra.enroll(fd);
+    enrolledId = out.id;
+    Umbra.session.set({ id: out.id, at: Date.now() });
+    stopCam();
+    location.assign("/?enrolled=" + encodeURIComponent(out.id));
     return;
   }
-  if (step !== "finger") return;
-  if (!bag.print.length) throw new Error("need a finger close-up");
-  const fd = new FormData();
-  bag.face.forEach((b, i) => fd.append("face", b, `face${i}.jpg`));
-  bag.voice.forEach((b, i) => fd.append("voice", b, `voice${i}.wav`));
-  bag.print.forEach((b, i) => fd.append("print", b, `print${i}.jpg`));
-  const out = await Umbra.enroll(fd);
-  enrolledId = out.id;
-  stopCam();
-  location.assign("/?enrolled=" + encodeURIComponent(out.id));
 }
 
 document.getElementById("begin").onclick = () => openCam().then(() => { step = "face"; render(); }).catch(showErr);
 document.getElementById("snapFace").onclick = () => snap("face").catch(showErr);
-document.getElementById("snapFinger").onclick = () => snap("print").catch(showErr);
 document.getElementById("recVoice").onclick = () => recordVoice().catch((e) => {
   voiceTok += 1;
   stopClock();
   showErr(e);
-  document.getElementById("recLabel").textContent = "Couldn’t record";
-  const btn = document.getElementById("stopVoice");
-  btn.textContent = "Retry";
-  btn.onclick = () => recordVoice().catch((err) => showErr(err));
+  voiceUI = "idle";
+  render();
 });
 document.getElementById("skipVoice").onclick = () => skipVoice();
-document.getElementById("skipFinger").onclick = () => skipFinger().catch(showErr);
 document.getElementById("voiceFile").onchange = (ev) => {
   const f = ev.target.files && ev.target.files[0];
   ev.target.value = "";
@@ -525,6 +493,12 @@ document.getElementById("doEnroll").onclick = () => saveEncrypted().catch(showEr
 rosterLine();
 render();
 setInterval(tickQa, 400);
+document.getElementById("skipHome").onclick = () => {
+  const pidEl = document.getElementById("pid");
+  const id = (pidEl && pidEl.value.trim()) || (Umbra.session.get() || {}).id || "guest";
+  Umbra.session.set({ id: id, at: Date.now() });
+  location.assign("/home");
+};
 </script>
 </body>
 </html>

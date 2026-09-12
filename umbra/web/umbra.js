@@ -15,6 +15,7 @@
     hop: () => j("/hop", { method: "POST" }),
     last: () => j("/last"),
     escrows: () => j("/escrows"),
+    receipts: () => j("/receipts"),
     enroll: (fd) => j("/enroll", { method: "POST", body: fd }),
     verify: (fd) => j("/verify", { method: "POST", body: fd }),
     session: {

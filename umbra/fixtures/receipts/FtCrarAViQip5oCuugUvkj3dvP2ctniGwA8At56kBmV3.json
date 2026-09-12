@@ -1,0 +1,11 @@
+{
+  "mint": "FtCrarAViQip5oCuugUvkj3dvP2ctniGwA8At56kBmV3",
+  "ata": "ESxBMRwjQtY5sEsKTXWkhuyEnYc5wez3gSL5hTdKkhB4",
+  "recipient": "VWvZgaSaWtZZnpiS5An9zSuuzTkRhELFfTbCHbvt9C4",
+  "auction_id": "demo-auction-1",
+  "signature": "286JqM8pMwXdavrPdU3WaDQUxUfULCQJGFnmsvdNTJPavpF6ZHdQxQC4uVbUQfPgQzXw4eX5esHRp314QU8zDJxd",
+  "explorer": "https://explorer.solana.com/tx/286JqM8pMwXdavrPdU3WaDQUxUfULCQJGFnmsvdNTJPavpF6ZHdQxQC4uVbUQfPgQzXw4eX5esHRp314QU8zDJxd?cluster=devnet",
+  "key_scheme": "recipient_keypair_v1",
+  "nonce_b64": "ADW/OiwSz900kyaS",
+  "ciphertext_b64": "s4++vinEq+QIOc9fYe5CFlMCCfjNESC7XERfdzWnSTTDr8xXmIbmVDmdBf1cahz21SrbieDcw4U1LBHaz0RLgmcwzk2NwJ5GYp2iFyj+hKpyMjR2LkRzGYi0gRyHrQKMujmJF4PdAd8w2PxEIw0mUY7qSNZrhXlRdr0J2D0vGF74cJI3KYGvjUJIsK8VhfYTxOgiOpMdcY9TQN+twGF26ORP1xZwpWVjO8vh2aMdsq7vNBjuPRLdX3a0zNKHuB2b+ZD9UR7uyg1GmWH5gwhVJp+fcgFVDCqTXQYVxakK4bQP7kFVIltCxUWrMnEw5KrDPQ5jTeY7zfq1+0ZUbsZjQMiD911EpRHYAdA3GNRWnk49JgYmk4i/+jYMOJAf5Y9F3+Hc43K7c5rB5cuhbHMvQVROJFZCUcCGRqGffwfK+p3PF/9T"
+}

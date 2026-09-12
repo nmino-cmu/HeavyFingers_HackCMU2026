@@ -25,6 +25,9 @@ def check(cond, msg):
 def test_sources_present():
     check(os.path.isfile(os.path.join(ROOT, "umbra/solana_wallet.py")), "solana_wallet")
     check(os.path.isfile(os.path.join(ROOT, "umbra/test_solana_escrow.py")), "test_solana_escrow")
+    check(os.path.isfile(os.path.join(ROOT, "umbra/test_solana_receipt_nft.py")), "test_solana_receipt_nft")
+    check("mint_encrypted_receipt" in open(os.path.join(ROOT, "umbra/solana_wallet.py")).read(), "nft mint")
+    check('FACE_L2_MAX = float(os.environ.get("UMBRA_FACE_L2_MAX", "220"))' in open(os.path.join(ROOT, "umbra/verify.py")).read(), "face 220")
     check(os.path.isfile(os.path.join(ROOT, "umbra/web/home.html")), "home.html")
     check(os.path.isfile(os.path.join(ROOT, "umbra/web/windows.js")), "windows.js")
     check(os.path.isfile(os.path.join(ROOT, "umbra/web/assets/logo.png")), "logo")
@@ -42,11 +45,12 @@ def test_enroll_functionality():
     html = open(os.path.join(ROOT, "umbra/web/enroll.html")).read()
     check("VOICE_MIN_MS = 12000" in html, "enroll 12s")
     check("grabFrame" in html, "enroll grabFrame")
-    check("snapFinger" in html, "enroll finger")
+    check("snapFinger" not in html and "skipFinger" not in html, "enroll finger")
     check("readFaces" in html, "enroll read faces")
     js = open(os.path.join(ROOT, "umbra/web/umbra.js")).read()
     check("grabFrame:" in js, "umbra.grabFrame")
     check("escrows:" in js, "umbra.escrows")
+    check("receipts:" in js, "umbra.receipts")
 
 
 def test_signin_functionality():
@@ -101,6 +105,23 @@ def test_escrow_listing_no_secrets():
     check(WEB_ROOT == Path(ROOT), WEB_ROOT)
 
 
+def test_receipt_listing_no_plaintext():
+    import json
+
+    d = os.path.join(ROOT, "umbra/fixtures/receipts")
+    check(os.path.isdir(d), d)
+    rows = []
+    for name in sorted(os.listdir(d)):
+        if not name.endswith(".json"):
+            continue
+        rec = json.loads(open(os.path.join(d, name)).read())
+        rows.append({k: rec.get(k) for k in ("mint", "auction_id", "explorer", "recipient")})
+        check("ciphertext_b64" in rec, name)
+    blob = json.dumps({"receipts": rows})
+    check("ciphertext" not in blob, blob)
+    check(len(rows) >= 1, rows)
+
+
 def main():
     test_sources_present()
     test_ui_chrome()
@@ -108,6 +129,7 @@ def main():
     test_signin_functionality()
     test_verify_parts_audio()
     test_escrow_listing_no_secrets()
+    test_receipt_listing_no_plaintext()
     print("ok", CHECKS_RUN)
 
 

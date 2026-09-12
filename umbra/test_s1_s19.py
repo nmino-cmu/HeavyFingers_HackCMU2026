@@ -80,6 +80,18 @@ def test_s1_words():
     check(s1("the lazy dog", NONCE) is False, "missing word")
     check(s1("the lazy dog box", NONCE) is True, "one whisper substitution")
     check(s1("uh the lazy dog fox um the lazy dog fox", NONCE) is True, "one of two repeats")
+    # last live take: tiny.en said non-sam/lettuce and dropped a function word
+    check(
+        s1(
+            "Brown asterisk quick lazy the non-sam over hack lettuce.",
+            "brown asterisk quick lazy the nonce over hack lattice",
+        ),
+        "tiny.en nonce/lattice",
+    )
+    check(
+        s1("brown asterisk quick lazy nonce lattice", "brown asterisk quick lazy the nonce lattice"),
+        "6-word card, whisper dropped the",
+    )
 
 
 def test_decide_and_s19():
@@ -120,7 +132,7 @@ def test_card_cli():
     card = generate()
     check(card["hand"] in ("left", "right"), card)
     check(card["end"] in ("pinky", "index", "thumb"), card)
-    check(len(card["say"].split()) >= 8, card["say"])
+    check(6 <= len(card["say"].split()) <= 8, card["say"])
     env = os.environ.copy()
     env["PYTHONPATH"] = ROOT + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
     out = subprocess.check_output(
@@ -130,7 +142,7 @@ def test_card_cli():
         check(key in out, f"card missing {key}")
     say = [ln.split(":", 1)[1].strip() for ln in out.splitlines() if ln.startswith("say:")][0]
     n = len(say.split())
-    check(8 <= n <= 12, f"nonce word count {n}")
+    check(6 <= n <= 8, f"nonce word count {n}")
 
 
 def test_whisper_mac():

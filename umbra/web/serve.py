@@ -141,6 +141,20 @@ class H(BaseHTTPRequestHandler):
             last = json.loads(LAST.read_text()) if LAST.is_file() else {}
             self._send(200, json.dumps({"escrows": rows, "last_hop": last}).encode())
             return
+        if path == "/receipts":
+            receipt_dir = ROOT / "umbra/fixtures/receipts"
+            rows = []
+            if receipt_dir.is_dir():
+                for p in sorted(receipt_dir.glob("*.json")):
+                    rec = json.loads(p.read_text())
+                    rows.append(
+                        {
+                            k: rec.get(k)
+                            for k in ("mint", "ata", "recipient", "auction_id", "signature", "explorer", "key_scheme")
+                        }
+                    )
+            self._send(200, json.dumps({"receipts": rows}).encode())
+            return
         self._send(404, b"no")
 
     def do_POST(self):

@@ -85,6 +85,12 @@ def test_wave_from_l2s():
     check(wave_from_l2s([20, 300, 25]), "you — occlude — you")
     check(wave_from_l2s([15, 18, 400, 999, 22]), "multi-frame wave")
     check(not wave_from_l2s([]), "empty")
+    check(not wave_from_l2s([343, 343, 120, 118, 110, 122]), "start miss then you — no wave")
+    from umbra.verify import _hand_on_face
+
+    face = {"x": 0.3, "y": 0.2, "w": 0.3, "h": 0.4}
+    check(_hand_on_face(face, [{"cx": 0.18, "cy": 0.4}]), "hand just outside the face box is a wave")
+    check(not _hand_on_face(face, [{"cx": 0.02, "cy": 0.9}]), "hand in the corner is not a wave")
     src = open(os.path.join(ROOT, "umbra/verify.py"), encoding="utf-8").read()
     check("grid_for_enroll" in src, "verify uses the enroll crop")
     check("len(good) >= 1" in src, "one matching frame is enough")
@@ -120,6 +126,34 @@ def test_take_frames_dense():
     )
     wide = take_frames(long)
     check(len(wide) >= 20, f"12s take must be sampled end-to-end {len(wide)}")
+    # last 2s white, first 10s black — wave lives at the end; at least 6 samples must be from there
+    endy = os.path.join(td, "end.mp4")
+    subprocess.check_call(
+        [
+            "ffmpeg", "-y",
+            "-f", "lavfi", "-i", "color=c=black:s=160x120:d=10",
+            "-f", "lavfi", "-i", "color=c=white:s=160x120:d=2",
+            "-filter_complex", "[0][1]concat=n=2:v=1:a=0",
+            "-pix_fmt", "yuv420p", endy,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    end_frames = take_frames(endy)
+    whites = 0
+    jp = os.path.join(td, "one.jpg")
+    raw = os.path.join(td, "one.gray")
+    for jpeg in end_frames:
+        open(jp, "wb").write(jpeg)
+        subprocess.check_call(
+            ["ffmpeg", "-y", "-i", jp, "-vf", "scale=8:8,format=gray", "-f", "rawvideo", raw],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        px = open(raw, "rb").read()
+        if px and (sum(px) / len(px)) > 80:
+            whites += 1
+    check(whites >= 6, f"end-of-take wave samples {whites}/{len(end_frames)}")
 
 
 def test_vultr_face_uses_profile():
@@ -145,7 +179,7 @@ def test_vultr_face_uses_profile():
     out = _post("/face", body, timeout=120)
     l2 = decrypt_l2(ctx, out)
     check(l2 >= 0, l2)
-    check(l2 > 200, "gray must not match live face")
+    check(l2 > 220, "gray must not match live face")
     print("VULTR_FACE_L2", l2, "profile", pid)
 
 

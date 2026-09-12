@@ -62,6 +62,8 @@
       <div class="win-body">
         <h3 class="desk-h">Current auctions</h3>
         <p class="desk-empty">None open.</p>
+        <h3 class="desk-h">Receipt NFTs</h3>
+        <div id="receiptList"><p class="desk-empty">None on disk.</p></div>
         <h3 class="desk-h">Past auctions</h3>
         <div class="auc-row">
           <h4>Lot 19 — sealed envelope</h4>
@@ -177,6 +179,23 @@ async function boot() {
     });
     if (!(pack.escrows || []).length) {
       box.innerHTML = '<p class="desk-empty">None on disk.</p>';
+    }
+    const recs = await Umbra.receipts();
+    const rbox = document.getElementById("receiptList");
+    rbox.innerHTML = "";
+    (recs.receipts || []).forEach((r) => {
+      const d = document.createElement("div");
+      d.className = "auc-row";
+      const mint = (r.mint || "").slice(0, 8);
+      d.innerHTML =
+        "<h4>" + (r.auction_id || "receipt") + " · " + mint + "…</h4>" +
+        "<p>" + (r.recipient ? r.recipient.slice(0, 8) + "…" : "") +
+        (r.explorer ? ' · <a href="' + r.explorer + '" target="_blank" rel="noreferrer">explorer</a>' : "") +
+        "</p>";
+      rbox.appendChild(d);
+    });
+    if (!(recs.receipts || []).length) {
+      rbox.innerHTML = '<p class="desk-empty">None on disk.</p>';
     }
   } catch (e) {
     document.getElementById("lastHop").textContent = String(e && e.message ? e.message : e);

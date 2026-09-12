@@ -311,7 +311,7 @@ def test_pages_split():
     enroll = open(os.path.join(ROOT, "umbra/web/enroll.html"), encoding="utf-8").read().lower()
     sign = open(os.path.join(ROOT, "umbra/web/index.html"), encoding="utf-8").read().lower()
     do = open(os.path.join(ROOT, "umbra/web/signin.html"), encoding="utf-8").read().lower()
-    for w in ("begin sign up", "capture face", "record voice", "capture finger", "save encrypted", "clear category"):
+    for w in ("begin sign up", "capture face", "record voice", "save encrypted", "clear category"):
         check(w in enroll, w)
     check("oval" in enroll and "well lit" in enroll, "face oval")
     check("qavoice" in enroll or "qa/voice" in enroll, "voice qa")
@@ -322,8 +322,9 @@ def test_pages_split():
     check("finished" in enroll and "voiceui" in enroll, "voice stays until finished")
     check('type="file"' in enroll and "accept=\"audio" in enroll, "voice file submit")
     check("choose voice file" in enroll, "voice file label")
-    check("dev mode: skip voice" in enroll and "function skipvoice" in enroll, "skip voice")
-    check("dev mode: skip finger" in enroll and "function skipfinger" in enroll, "skip finger")
+    check("dev mode" not in enroll and "skipvoice" not in enroll and "skipfinger" not in enroll, "dev skip")
+    check("capture finger" not in enroll and "step === \"finger\"" not in enroll, "finger step")
+    check("skip to home" not in enroll and "skip to home" not in sign and "skip to home" not in do, "skip home")
     recfn = enroll[enroll.find("async function recordvoice"):enroll.find("function clearcategory")]
     check(recfn.find('stopvoice").onclick') < recfn.find("getusermedia"), "stop bound before mic wait")
     check(recfn.find("getusermedia") < recfn.find("newctx()"), "mic before audiocontext")
@@ -378,7 +379,7 @@ def test_pages_split():
     # live QA drives the oval on both pages; capture never waits on it
     check("setinterval(tickqa" in enroll and 'classlist.toggle("ok"' in enroll, "enroll live oval")
     check("setinterval(tickqa" in do and 'classlist.toggle("ok"' in do, "signin live oval")
-    snapfn = enroll[enroll.find("async function snap("):enroll.find("function dummyprint")]
+    snapfn = enroll[enroll.find("async function snap("):enroll.find("function acceptvoice")]
     check(snapfn and "throw new error(q.reason" not in snapfn and "qaface" not in snapfn, "snap gated on qa")
     check("q.ok && q.face" in enroll and "q.ok && q.face" in do, "green needs a face box")
     css = open(os.path.join(ROOT, "umbra/web/style.css"), encoding="utf-8").read().lower()

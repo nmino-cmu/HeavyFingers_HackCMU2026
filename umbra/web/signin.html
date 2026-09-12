@@ -34,7 +34,6 @@
       <div class="face-btns">
         <button type="button" id="rec" disabled>Record</button>
         <button type="button" id="send" disabled>Send</button>
-        <button type="button" id="skipHome" class="skip-home">Skip to home</button>
       </div>
     </div>
     <div class="face-meta">
@@ -129,7 +128,7 @@ async function boot() {
     const rost = await Umbra.roster();
     const people = rost.people || [];
     if (!people.length) {
-      document.getElementById("status").textContent = "No roster yet — register first, or skip to home.";
+      document.getElementById("status").textContent = "No roster yet — register first.";
     } else {
       pid = people[people.length - 1].id;
       const sess = Umbra.session.get();
@@ -373,10 +372,6 @@ document.getElementById("send").onclick = () => {
 };
 
 boot().then(openCam).catch(showErr);
-document.getElementById("skipHome").onclick = () => {
-  Umbra.session.set({ id: pid || (Umbra.session.get() || {}).id || "guest", at: Date.now() });
-  location.assign("/home");
-};
 </script>
 </body>
 </html>

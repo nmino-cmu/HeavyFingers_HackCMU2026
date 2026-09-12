@@ -25,7 +25,7 @@ os.environ.setdefault("UMBRA_KEY_DIR", str(HERE / "enroll_keys" / "_circuit"))
 
 # After Vision-align + FFT voice. Old 752886 enroll (unaligned / time-RMS) will miss — re-enroll.
 # Live same-you video vs enroll stills lands ~76–160. 90 was synthetic +3% gray and rejected you.
-FACE_L2_MAX = float(os.environ.get("UMBRA_FACE_L2_MAX", "200"))
+FACE_L2_MAX = float(os.environ.get("UMBRA_FACE_L2_MAX", "220"))
 VOICE_L2_MAX = float(os.environ.get("UMBRA_VOICE_L2_MAX", "0.2"))
 # ponytail: occlusion = FHE L2 vs enroll, not a hand net. Recover-as-you is the filter-drop check.
 OCCLUDE_L2 = float(os.environ.get("UMBRA_OCCLUDE_L2", "220"))
@@ -141,20 +141,30 @@ def _clip_dur(src: str) -> float:
 
 
 def take_frames(src: str, n: int = FACE_FRAME_N, fps: float | None = None) -> list[bytes]:
-    # Spread n frames across the whole take — 8fps×24 only covered the first 3s and missed the end wave.
+    # Body covers the whole take; the last 2s is where the UI asks for the wave.
     dur = _clip_dur(src)
-    rate = fps if fps is not None else (n / dur if dur else FACE_FPS)
     td = Path(src).parent
-    dst = td / "p%02d.jpg"
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", src, "-vf", f"fps={rate}", "-frames:v", str(n), "-q:v", "2", str(dst)],
-        capture_output=True,
-    )
-    out = []
-    for p in sorted(td.glob("p*.jpg")):
-        b = p.read_bytes()
-        if len(b) > 32:
-            out.append(b)
+    out: list[bytes] = []
+
+    def _grab(pattern: str, vf: str, frames: int, ss: float | None = None) -> None:
+        cmd = ["ffmpeg", "-y"]
+        if ss is not None:
+            cmd += ["-ss", f"{ss:.3f}"]
+        cmd += ["-i", src, "-vf", vf, "-frames:v", str(frames), "-q:v", "2", str(td / pattern)]
+        subprocess.run(cmd, capture_output=True)
+        for p in sorted(td.glob(pattern.replace("%02d", "*"))):
+            b = p.read_bytes()
+            if len(b) > 32:
+                out.append(b)
+
+    if dur >= 5 and fps is None:
+        tail_n = min(8, max(6, n // 3))
+        body_n = max(12, n - tail_n)
+        _grab("b%02d.jpg", f"fps={body_n / dur}", body_n)
+        _grab("e%02d.jpg", f"fps={tail_n / 2.0}", tail_n, ss=max(0.0, dur - 2.0))
+    else:
+        rate = fps if fps is not None else (n / dur if dur else FACE_FPS)
+        _grab("p%02d.jpg", f"fps={rate}", n)
     return out
 
 
@@ -180,9 +190,10 @@ def _one_face(ctx, evk, tmpl, probe_ct):
 def _hand_on_face(face: dict, hands: list) -> bool:
     fx, fy = float(face["x"]), float(face["y"])
     fw, fh = float(face["w"]), float(face["h"])
+    pad = 0.16
     for h in hands:
         cx, cy = float(h.get("cx", -1)), float(h.get("cy", -1))
-        if fx - 0.06 <= cx <= fx + fw + 0.06 and fy - 0.06 <= cy <= fy + fh + 0.06:
+        if fx - pad <= cx <= fx + fw + pad and fy - pad <= cy <= fy + fh + pad:
             return True
     return False
 

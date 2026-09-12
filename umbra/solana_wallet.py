@@ -1,25 +1,35 @@
 """Send and receive SOL on Solana (devnet by default).
 
-Requires: pip install solana solders
+Requires: pip install solana solders cryptography
 
 Receive = share your public address; others send to it. Use get_balance /
 wait_for_incoming to see funds land.
+
+Also: custodial escrow + encrypted 1/1 receipt NFTs for auction outcomes
+(winners and losers both get a receipt).
 """
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
 import json
 import os
 import time
 from pathlib import Path
 
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from solana.rpc.async_api import AsyncClient
 from solana.rpc.commitment import Confirmed
+from solders.instruction import AccountMeta, Instruction
 from solders.keypair import Keypair
 from solders.message import MessageV0
 from solders.pubkey import Pubkey
-from solders.system_program import TransferParams, transfer
+from solders.system_program import CreateAccountParams, create_account
+from solders.system_program import ID as SYSTEM_PROGRAM_ID
+from solders.token.associated import get_associated_token_address
 from solders.transaction import VersionedTransaction
+from solders.system_program import TransferParams, transfer
 
 LAMPORTS_PER_SOL = 1_000_000_000
 DEFAULT_RPC = os.environ.get("UMBRA_SOLANA_RPC", "https://api.devnet.solana.com")
@@ -296,6 +306,284 @@ def _settle_escrow(
     to_save = {k: v for k, v in record.items() if k != "meta_path"}
     meta_path.write_text(json.dumps(to_save, indent=2))
     return record
+
+
+# --- Encrypted auction / purchase receipt NFTs (1/1 SPL tokens) ---
+# On-chain: mint + ATA + amount 1. Off-chain: AES-GCM ciphertext of the receipt.
+# If recipient is a keypair, only they can derive the decrypt key.
+# If recipient is an address only, a one-time decrypt_key_hex is returned to the caller.
+
+TOKEN_PROGRAM_ID = Pubkey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+ATA_PROGRAM_ID = Pubkey.from_string("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
+MINT_SIZE = 82
+RECEIPT_DIR = Path(
+    os.environ.get("UMBRA_RECEIPT_DIR", Path(__file__).resolve().parent / "fixtures" / "receipts")
+)
+
+
+def _receipt_key_from_wallet(recipient: Keypair, mint: Pubkey) -> bytes:
+    return hashlib.sha256(b"umbra-receipt-v1" + bytes(recipient)[:32] + bytes(mint)).digest()
+
+
+def _encrypt_receipt_payload(payload: dict, key: bytes) -> tuple[str, str]:
+    aes = AESGCM(key)
+    nonce = os.urandom(12)
+    ct = aes.encrypt(nonce, json.dumps(payload, sort_keys=True).encode(), b"umbra-receipt")
+    return base64.b64encode(nonce).decode(), base64.b64encode(ct).decode()
+
+
+def _decrypt_receipt_payload(nonce_b64: str, ct_b64: str, key: bytes) -> dict:
+    aes = AESGCM(key)
+    raw = aes.decrypt(
+        base64.b64decode(nonce_b64),
+        base64.b64decode(ct_b64),
+        b"umbra-receipt",
+    )
+    return json.loads(raw.decode())
+
+
+def _ix_initialize_mint2(mint: Pubkey, decimals: int, mint_authority: Pubkey) -> Instruction:
+    # spl-token InitializeMint2 (tag 20): decimals + authority + no freeze
+    data = bytes([20, decimals & 0xFF]) + bytes(mint_authority) + bytes([0])
+    return Instruction(TOKEN_PROGRAM_ID, data, [AccountMeta(mint, False, True)])
+
+
+def _ix_mint_to(mint: Pubkey, dest: Pubkey, authority: Pubkey, amount: int) -> Instruction:
+    data = bytes([7]) + int(amount).to_bytes(8, "little")
+    return Instruction(
+        TOKEN_PROGRAM_ID,
+        data,
+        [
+            AccountMeta(mint, False, True),
+            AccountMeta(dest, False, True),
+            AccountMeta(authority, True, False),
+        ],
+    )
+
+
+def _ix_set_authority_none(account: Pubkey, current_authority: Pubkey, authority_type: int) -> Instruction:
+    # SetAuthority tag 6; authority_type 0 = MintTokens; new authority = None
+    data = bytes([6, authority_type & 0xFF, 0])
+    return Instruction(
+        TOKEN_PROGRAM_ID,
+        data,
+        [
+            AccountMeta(account, False, True),
+            AccountMeta(current_authority, True, False),
+        ],
+    )
+
+
+def _ix_create_ata_idempotent(payer: Pubkey, owner: Pubkey, mint: Pubkey, ata: Pubkey) -> Instruction:
+    # Associated Token Program: CreateIdempotent = 1
+    return Instruction(
+        ATA_PROGRAM_ID,
+        bytes([1]),
+        [
+            AccountMeta(payer, True, True),
+            AccountMeta(ata, False, True),
+            AccountMeta(owner, False, False),
+            AccountMeta(mint, False, False),
+            AccountMeta(SYSTEM_PROGRAM_ID, False, False),
+            AccountMeta(TOKEN_PROGRAM_ID, False, False),
+        ],
+    )
+
+
+async def _mint_receipt_nft(
+    minter: Keypair,
+    recipient: Pubkey,
+    rpc: str,
+) -> tuple[str, str, str]:
+    """Create a 1/1 token mint and deliver it to recipient. Returns (mint, ata, sig)."""
+    mint_kp = Keypair()
+    ata = get_associated_token_address(recipient, mint_kp.pubkey())
+    last_err: Exception | None = None
+    async with AsyncClient(rpc) as client:
+        rent = (await client.get_minimum_balance_for_rent_exemption(MINT_SIZE)).value
+        for attempt in range(6):
+            try:
+                blockhash = (await client.get_latest_blockhash()).value.blockhash
+                ixs = [
+                    create_account(
+                        CreateAccountParams(
+                            from_pubkey=minter.pubkey(),
+                            to_pubkey=mint_kp.pubkey(),
+                            lamports=rent,
+                            space=MINT_SIZE,
+                            owner=TOKEN_PROGRAM_ID,
+                        )
+                    ),
+                    _ix_initialize_mint2(mint_kp.pubkey(), 0, minter.pubkey()),
+                    _ix_create_ata_idempotent(minter.pubkey(), recipient, mint_kp.pubkey(), ata),
+                    _ix_mint_to(mint_kp.pubkey(), ata, minter.pubkey(), 1),
+                    _ix_set_authority_none(mint_kp.pubkey(), minter.pubkey(), 0),
+                ]
+                msg = MessageV0.try_compile(
+                    payer=minter.pubkey(),
+                    instructions=ixs,
+                    address_lookup_table_accounts=[],
+                    recent_blockhash=blockhash,
+                )
+                tx = VersionedTransaction(msg, [minter, mint_kp])
+                sig = (await client.send_raw_transaction(bytes(tx))).value
+                await client.confirm_transaction(sig, commitment=Confirmed)
+                return str(mint_kp.pubkey()), str(ata), str(sig)
+            except Exception as e:
+                last_err = e
+                msg = str(e)
+                if "AccountNotFound" in msg or "no record of a prior credit" in msg:
+                    await asyncio.sleep(1.5 * (attempt + 1))
+                    continue
+                raise
+    raise RuntimeError(last_err)
+
+
+def mint_encrypted_receipt(
+    minter: Keypair | str | Path,
+    recipient: Keypair | str | Path,
+    *,
+    won: bool,
+    auction_id: str,
+    details: dict | None = None,
+    store_dir: str | Path | None = None,
+    rpc: str = DEFAULT_RPC,
+) -> dict:
+    """Mint a 1/1 receipt NFT to `recipient` with an encrypted win/lose payload.
+
+    Everyone who bids should get one — set won=False for losers.
+    """
+    minter_kp = _as_wallet(minter)
+    store = Path(store_dir) if store_dir else RECEIPT_DIR
+    store.mkdir(parents=True, exist_ok=True)
+
+    recipient_kp: Keypair | None = None
+    if isinstance(recipient, Keypair):
+        recipient_kp = recipient
+        recipient_addr = receive_address(recipient)
+    else:
+        path = Path(recipient)
+        if path.is_file():
+            recipient_kp = load_wallet(path)
+            recipient_addr = receive_address(recipient_kp)
+        else:
+            recipient_addr = str(recipient)
+            Pubkey.from_string(recipient_addr)
+
+    mint, ata, sig = _run(_mint_receipt_nft(minter_kp, Pubkey.from_string(recipient_addr), rpc))
+    mint_pk = Pubkey.from_string(mint)
+
+    payload = {
+        "auction_id": auction_id,
+        "won": bool(won),
+        "outcome": "won" if won else "lost",
+        "message": (
+            "You won this auction."
+            if won
+            else "You did not win this auction. This NFT is your encrypted participation receipt."
+        ),
+        "recipient": recipient_addr,
+        "mint": mint,
+        "details": details or {},
+    }
+
+    decrypt_key_hex = None
+    if recipient_kp is not None:
+        key = _receipt_key_from_wallet(recipient_kp, mint_pk)
+        key_scheme = "recipient_keypair_v1"
+    else:
+        key = AESGCM.generate_key(bit_length=256)
+        decrypt_key_hex = key.hex()
+        key_scheme = "caller_held_v1"
+
+    nonce_b64, ct_b64 = _encrypt_receipt_payload(payload, key)
+    record = {
+        "mint": mint,
+        "ata": ata,
+        "recipient": recipient_addr,
+        "auction_id": auction_id,
+        "signature": sig,
+        "explorer": explorer_url(sig),
+        "key_scheme": key_scheme,
+        "nonce_b64": nonce_b64,
+        "ciphertext_b64": ct_b64,
+        # never store plaintext outcome on disk
+    }
+    (store / f"{mint}.json").write_text(json.dumps(record, indent=2))
+    out = {
+        "mint": mint,
+        "ata": ata,
+        "recipient": recipient_addr,
+        "auction_id": auction_id,
+        "won": bool(won),
+        "signature": sig,
+        "explorer": explorer_url(sig),
+        "receipt_path": str(store / f"{mint}.json"),
+        "key_scheme": key_scheme,
+    }
+    if decrypt_key_hex:
+        out["decrypt_key_hex"] = decrypt_key_hex
+    return out
+
+
+def issue_auction_receipts(
+    minter: Keypair | str | Path,
+    auction_id: str,
+    participants: list[dict],
+    store_dir: str | Path | None = None,
+    rpc: str = DEFAULT_RPC,
+) -> list[dict]:
+    """Issue encrypted receipt NFTs to every auction participant.
+
+    Each item in `participants`:
+      {"recipient": Keypair|path|address, "won": bool, "details": optional dict}
+
+    Losers must be included with won=False so they still receive a receipt NFT.
+    """
+    if not participants:
+        raise ValueError("participants must be non-empty")
+    winners = sum(1 for p in participants if p.get("won"))
+    if winners > 1:
+        raise ValueError("at most one participant may have won=True")
+
+    receipts = []
+    for p in participants:
+        if "recipient" not in p or "won" not in p:
+            raise ValueError("each participant needs recipient and won")
+        receipts.append(
+            mint_encrypted_receipt(
+                minter,
+                p["recipient"],
+                won=bool(p["won"]),
+                auction_id=auction_id,
+                details=p.get("details"),
+                store_dir=store_dir,
+                rpc=rpc,
+            )
+        )
+    return receipts
+
+
+def decrypt_receipt(
+    recipient: Keypair | str | Path,
+    mint_address: str,
+    decrypt_key_hex: str | None = None,
+    store_dir: str | Path | None = None,
+) -> dict:
+    """Decrypt a receipt NFT payload. Prefer recipient keypair; else pass decrypt_key_hex."""
+    store = Path(store_dir) if store_dir else RECEIPT_DIR
+    path = store / f"{mint_address}.json"
+    if not path.is_file():
+        raise FileNotFoundError(path)
+    record = json.loads(path.read_text())
+
+    if decrypt_key_hex:
+        key = bytes.fromhex(decrypt_key_hex)
+    else:
+        recipient_kp = _as_wallet(recipient)
+        key = _receipt_key_from_wallet(recipient_kp, Pubkey.from_string(mint_address))
+
+    return _decrypt_receipt_payload(record["nonce_b64"], record["ciphertext_b64"], key)
 
 
 #Test code

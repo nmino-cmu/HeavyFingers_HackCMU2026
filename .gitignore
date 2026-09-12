@@ -3,6 +3,7 @@ umbra/.env
 **/.env
 *.pem
 *.sk
+**/*.keypair.json
 client.zip
 umbra/artifacts/
 umbra/artifacts-p3/
@@ -24,3 +25,9 @@ umbra/kept/
 umbra/artifacts-voice
 umbra/artifacts-bid
 umbra/artifacts_print
+
+# plans, cursor, agent — keep on disk, do not ship
+docs/
+.cursor/
+.superpowers/
+brainstorm/

@@ -18,7 +18,7 @@ _model = None
 
 def generate(rng: random.Random | None = None) -> dict:
     r = rng or random.Random()
-    n = r.randint(8, 12)
+    n = r.randint(6, 8)
     nonce = " ".join(r.sample(WORDS, n))
     return {
         "say": nonce,
@@ -58,6 +58,7 @@ def transcribe(audio_path: str) -> str:
         language="en",
         temperature=0,
         condition_on_previous_text=False,
+        initial_prompt=" ".join(WORDS),
     )["text"]
 
 

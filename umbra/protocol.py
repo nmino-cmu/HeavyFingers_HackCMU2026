@@ -54,3 +54,46 @@ def looks_like_plaintext_v(body: bytes) -> bool:
     if body[:1] in (b"{", b"[") and b"0.9137" in body:
         return True
     return False
+
+
+def looks_like_plaintext_mel(body: bytes) -> bool:
+    """Reject raw 64×64 log-mel / wav. Crop stays on the Mac."""
+    if body[:4] in (b"RIFF", b"OggS", b"fLaC", b"\x1aE\xdf\xa3"):
+        return True
+    if len(body) in (64 * 64 * 4, 64 * 64 * 8):
+        return True
+    low = body[:64].lower()
+    if low[:1] in (b"{", b"[") and (b"mel" in low or b"wav" in low):
+        return True
+    return False
+
+
+def looks_like_plaintext_xyt(body: bytes) -> bool:
+    """Reject raw NIST-style .xyt text (small ASCII columns)."""
+    if looks_like_plaintext_v(body):
+        return True
+    if len(body) < 4096:
+        try:
+            text = body.decode("ascii")
+        except Exception:
+            return False
+        hits = 0
+        for ln in text.splitlines():
+            s = ln.strip()
+            if not s or s.startswith("#"):
+                continue
+            parts = s.replace(",", " ").split()
+            if len(parts) < 3:
+                continue
+            try:
+                float(parts[0])
+                float(parts[1])
+                float(parts[2])
+            except ValueError:
+                continue
+            hits += 1
+        if hits >= 3:
+            return True
+    if body.lstrip()[:1] in (b"{", b"["):
+        return True
+    return False

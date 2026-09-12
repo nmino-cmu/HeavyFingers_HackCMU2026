@@ -32,3 +32,36 @@ Notes:
 - Compile via docker exec in umbra-choreo (same CML image). client.zip wiped on the VM
 - OpenFHE try was on farm-a umbra-p3 (not the live eval path)
 - orch public :8080 → /eval :8086 and /eval3 :8087
+- orch also /print :8082 /audio :8083 /face :8084 /bid :8085 on farm VPC
+
+ROW S2 STACKS_TRIED=concrete,openfhe RESULT=VULTR_CONCRETE
+EVAL_HOST=vultr
+MAC_FHE_PROBE=ok
+cmd: /opt/umbra/venv311/bin/python -c "import openfhe"
+stderr:
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/umbra/venv311/lib/python3.11/site-packages/openfhe/__init__.py", line 1, in <module>
+    from .openfhe import *
+ModuleNotFoundError: No module named 'openfhe.openfhe'
+PyPI openfhe wheel is CPython 3.10 on farm-heavy 3.11. Shipped path is TinyS2 Concrete-ML 10.20.0.7:8083.
+test_voice.py CHECKS_RUN=42 (2026-09-12 orchestrator re-run).
+
+ROW S3 STACKS_TRIED=cryptoface,tenseal,concrete RESULT=VULTR_SEAL
+EVAL_HOST=vultr
+MAC_FHE_PROBE=ok
+cmd: cmake -S cnn_ckks -B build
+stderr:
+CMake Error at CMakeLists.txt:8 (find_package):
+  Could not find a package configuration file provided by "SEAL"
+  (SEALConfig.cmake). CryptoFaceNet4 not shipped.
+TenSEAL CKKS L2 on farm-fast 10.20.0.6:8084. test_face.py CHECKS_RUN=26 machine-id 7b4c001601ba4fbaa4aa2b236a1d0f23.
+
+ROW S24 STACKS_TRIED=concrete,openfhe RESULT=VULTR_CONCRETE
+EVAL_HOST=vultr
+MAC_FHE_PROBE=ok
+cmd: python3 -c "import openfhe"
+stderr:
+ModuleNotFoundError: No module named 'openfhe'
+farm-a host before pip. Shipped path: Tiny Linear(2,2) Concrete-ML on farm-fast 10.20.0.6:8085.
+test_bid.py CHECKS_RUN=23 (2026-09-12 orchestrator re-run).

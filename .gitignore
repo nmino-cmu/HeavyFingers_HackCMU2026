@@ -7,6 +7,10 @@ client.zip
 umbra/artifacts/
 umbra/artifacts-p3/
 umbra/artifacts-p3-mac/
+umbra/artifacts-voice/
+umbra/artifacts-bid/
+umbra/artifacts_print/
+umbra/artifacts-print/
 .venv-umbra/
 .artifacts/
 **/__pycache__/

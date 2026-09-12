@@ -1,0 +1,72 @@
+{
+  "name": "node-seal",
+  "version": "7.0.0",
+  "description": "Homomorphic Encryption for TypeScript or JavaScript using Microsoft SEAL",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/s0l0ist/node-seal.git"
+  },
+  "homepage": "https://s0l0ist.github.io/seal-sandbox/",
+  "author": {
+    "name": "Nick Angelou",
+    "email": "angelou.nick@gmail.com",
+    "url": "https://s0l0ist.github.io/seal-sandbox/"
+  },
+  "keywords": [
+    "homomorphic",
+    "encryption",
+    "homomorphic-encryption",
+    "microsoft seal",
+    "webassembly",
+    "fhe",
+    "crypto",
+    "cryptography",
+    "cryptosystem"
+  ],
+  "type": "module",
+  "main": "./dist/index_throws.js",
+  "types": "./dist/index_throws.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index_throws.d.ts",
+      "import": "./dist/index_throws.js"
+    },
+    "./throws": {
+      "types": "./dist/index_throws.d.ts",
+      "import": "./dist/index_throws.js"
+    },
+    "./allows": {
+      "types": "./dist/index_allows.d.ts",
+      "import": "./dist/index_allows.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "clean": "bash scripts/seal-clean.sh",
+    "wasm:cmake": "bash scripts/seal-cmake.sh",
+    "wasm:make": "bash scripts/seal-make.sh",
+    "wasm:build": "bash scripts/seal-build-wasm.sh",
+    "wasm:throws": "export THROW_ON_TRANSPARENT=ON && npm run wasm:cmake && npm run wasm:make && npm run wasm:build",
+    "wasm:allows": "export THROW_ON_TRANSPARENT=OFF && npm run wasm:cmake && npm run wasm:make && npm run wasm:build",
+    "wasm:bench": "export BUILD_BENCH=ON && export THROW_ON_TRANSPARENT=ON && npm run wasm:cmake && npm run wasm:make && echo '{ \"type\": \"commonjs\" }' > ./submodules/SEAL/build/bin/package.json",
+    "wasm": "npm run wasm:throws && npm run wasm:allows",
+    "build": "npm run wasm",
+    "compile": " tsc && cp src/seal_* dist/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "benchmark": "node submodules/SEAL/build/bin/sealbench.js",
+    "update:submodule": "bash scripts/submodule-update.sh",
+    "update:emsdk": "bash scripts/em-update.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@vitest/coverage-v8": "^4.0.8",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2",
+    "vitest": "^4.0.8"
+  }
+}

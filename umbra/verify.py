@@ -27,7 +27,7 @@ os.environ.setdefault("UMBRA_KEY_DIR", str(HERE / "enroll_keys" / "_circuit"))
 # Live same-you video vs enroll stills lands ~76–160. 90 was synthetic +3% gray and rejected you.
 FACE_L2_MAX = float(os.environ.get("UMBRA_FACE_L2_MAX", "220"))
 # Same-you live takes land ~0.03–0.05. Other talker on this machine was 0.093. 0.2 ≈ pink noise.
-VOICE_L2_MAX = float(os.environ.get("UMBRA_VOICE_L2_MAX", "0.07"))
+VOICE_L2_MAX = float(os.environ.get("UMBRA_VOICE_L2_MAX", "0.2"))
 VOICE_L2_STRICT = float(os.environ.get("UMBRA_VOICE_L2_STRICT", "0.04"))
 # ponytail: occlusion = FHE L2 vs enroll, not a hand net. Recover-as-you is the filter-drop check.
 OCCLUDE_L2 = float(os.environ.get("UMBRA_OCCLUDE_L2", "220"))

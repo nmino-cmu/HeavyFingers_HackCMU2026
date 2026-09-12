@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <title>Umbra — do this</title>
-  <link rel="icon" href="/assets/logo.png" type="image/png">
-  <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=all5">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="stylesheet" href="style.css?v=chill2">
 </head>
 <body class="desktop face-page" data-bg="face">
 <div data-umbra-bg></div>
@@ -15,21 +15,22 @@
       <h2>Face</h2>
       <div class="win-chrome">
         <button type="button" data-win-min aria-label="Minimize">-</button>
-        <a class="win-btn face-x" href="/" aria-label="Close">X</a>
+        <a class="win-btn face-x" href="index.html" aria-label="Close">X</a>
       </div>
     </div>
     <div class="face-view" id="stage">
       <video id="cam" class="mirror" playsinline muted autoplay></video>
       <div id="guide" hidden><div class="oval"></div></div>
-      <img class="oval-asset" id="ovalPlaceholder" src="/assets/oval.svg" width="417" height="535" alt="">
+      <img class="oval-asset" id="ovalPlaceholder" src="assets/oval.svg?v=pretty2" width="417" height="535" alt="">
       <video id="takePlay" controls playsinline hidden></video>
     </div>
     <audio id="takeMic" hidden></audio>
     <div class="face-foot">
       <p id="act">
-        Look straight — place your face until it fully fits the ellipse.<br>
-        Hit record. Say the phrase: <span id="say">_________________________</span><br>
-        Reread it for 12 seconds, wave once, then Stop. Send.
+        <span>Look straight — place your face until it fully fits the ellipse.</span>
+        <span>Hit record. Say the phrase:</span>
+        <span id="say">_________________________</span>
+        <span>Reread it for 12 seconds, wave once, then Stop. Send.</span>
       </p>
       <div class="face-btns">
         <button type="button" id="rec" disabled>Record</button>
@@ -56,9 +57,9 @@
     <div class="win-resize" aria-hidden="true"></div>
   </article>
 </div>
-<script src="/umbra.js?v=all5"></script>
-<script src="/vendor/grain.js"></script>
-<script src="/windows.js?v=wire5"></script>
+<script src="umbra.js?v=all5"></script>
+<script src="vendor/grain.js?v=chill2"></script>
+<script src="windows.js?v=chill2"></script>
 <script>
 let stream = null;
 let rec = null;
@@ -80,6 +81,7 @@ let armed = false;
 let qaBusy = false;
 let phase = "idle";
 let heldOut = null;
+let said = "";
 const VOICE_MIN_MS = 12000;
 const LIGHTS = ["face", "voice", "words", "wave"];
 const LIGHT_LABEL = {face: "S3", voice: "S2", words: "S1", wave: "LV"};
@@ -149,7 +151,7 @@ async function boot() {
   }
   try {
     card = await Umbra.card();
-    document.getElementById("say").textContent = "Say: " + card.say;
+    document.getElementById("say").textContent = card.say;
   } catch (e) {
     showErr(e);
   }
@@ -157,8 +159,8 @@ async function boot() {
 
 async function openCam() {
   if (stream) return stream;
-  if (!/^(127\.0\.0\.1|localhost)$/.test(location.hostname) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    throw new Error("Camera is blocked on this URL. Open http://127.0.0.1:8765/signin");
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error("Camera is blocked on this URL. Use HTTPS or http://127.0.0.1:8765/signin");
   }
   try {
     stream = await navigator.mediaDevices.getUserMedia({video: {width: {ideal: 1280}, height: {ideal: 720}}, audio: false});
@@ -260,6 +262,24 @@ function beginRec(s) {
     audioWait = Promise.resolve(null);
   }
   setTake(null);
+  said = "";
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    try {
+      const recTalk = new SR();
+      recTalk.lang = "en-US";
+      recTalk.continuous = true;
+      recTalk.interimResults = true;
+      recTalk.onresult = (ev) => {
+        let t = "";
+        for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript + " ";
+        said = t.trim();
+      };
+      recTalk.start();
+      recTalk._stop = () => { try { recTalk.stop(); } catch (e) {} };
+      stream._talk = recTalk;
+    } catch (e) {}
+  }
   rec.start(200);
   recording = true;
   recStarted = Date.now();
@@ -288,6 +308,7 @@ function endRec() {
     audioRec.stop();
     if (audioWait) waits.push(audioWait);
   }
+  if (stream && stream._talk && stream._talk._stop) stream._talk._stop();
   if (!rec || rec.state === "inactive") {
     recording = false;
     document.getElementById("rec").textContent = "Record";
@@ -383,7 +404,7 @@ function startFhe() {
   document.getElementById("status").textContent = "FHE on Vultr. Eval on ciphertext.";
 }
 
-document.getElementById("enter").onclick = () => location.assign("/home");
+document.getElementById("enter").onclick = () => location.assign("home.html");
 
 document.getElementById("send").onclick = () => {
   showErr("");
@@ -409,6 +430,7 @@ document.getElementById("send").onclick = () => {
     if (audioTake && audioTake.size) fd.append("audio", audioTake, audioTake.type.indexOf("mp4") >= 0 ? "mic.mp4" : "mic.webm");
     fd.append("card", JSON.stringify(card || {}));
     fd.append("id", pid);
+    fd.append("said", said || "");
     return Umbra.verify(fd);
   }).then((out) => {
     if (phase === "encrypt") { heldOut = out; return; }

@@ -1,5 +1,10 @@
-/* Drop-in: card + fixture AND. Crops and sk stay on the host that serves this. */
+/* Drop-in: card + fixture AND. Crops and sk stay on this browser. */
 (function (g) {
+  let localP;
+  function local() {
+    localP = localP || import("./fhe-local.js");
+    return localP;
+  }
   async function j(url, opt) {
     const r = await fetch(url, opt);
     if (!r.ok) throw new Error(await r.text());
@@ -7,18 +12,18 @@
   }
   const SESS = "umbra.session";
   g.Umbra = {
-    card: () => j("/card"),
-    sample: (lane) => j("/sample", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lane }) }),
-    samples: () => j("/samples"),
-    fixture: () => j("/fixture", { method: "POST" }),
-    roster: () => j("/roster"),
-    hop: () => j("/hop", { method: "POST" }),
-    last: () => j("/last"),
-    cutout: () => j("/cutout"),
-    escrows: () => j("/escrows"),
-    receipts: () => j("/receipts"),
-    enroll: (fd) => j("/enroll", { method: "POST", body: fd }),
-    verify: (fd) => j("/verify", { method: "POST", body: fd }),
+    card: () => local().then((m) => m.card()),
+    sample: () => Promise.resolve({}),
+    samples: () => Promise.resolve({ samples: [] }),
+    fixture: () => Promise.resolve({}),
+    roster: () => local().then((m) => m.roster()),
+    hop: () => Promise.resolve({}),
+    last: () => Promise.resolve({}),
+    cutout: () => Promise.resolve({}),
+    escrows: () => Promise.resolve({ escrows: [], last_hop: {} }),
+    receipts: () => Promise.resolve({ receipts: [] }),
+    enroll: (fd) => local().then((m) => m.enroll(fd)),
+    verify: (fd) => local().then((m) => m.verify(fd)),
     session: {
       get() {
         try { return JSON.parse(localStorage.getItem(SESS) || "null"); } catch (e) { return null; }
@@ -80,20 +85,11 @@
         return new TextDecoder().decode(raw);
       },
     },
-    qaFace: (blob, pose) => {
-      const fd = new FormData();
-      fd.append("face", blob, "face.jpg");
-      fd.append("pose", pose || "front");
-      return j("/qa/face", { method: "POST", body: fd });
-    },
-    qaVoice: (blob) => {
-      const fd = new FormData();
-      fd.append("voice", blob, "voice.wav");
-      return j("/qa/voice", { method: "POST", body: fd });
-    },
+    qaFace: (blob, pose) => local().then((m) => m.qaFace(blob, pose)),
+    qaVoice: (blob) => local().then((m) => m.qaVoice(blob)),
     openCam: async (video, opt) => {
       if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Camera is blocked on this URL. Use http://127.0.0.1:8765/");
+        throw new Error("Camera is blocked on this URL. Use HTTPS.");
       }
       const videoOpt = (opt && opt.video) || { width: { ideal: 1280 }, height: { ideal: 720 } };
       const wantAudio = !!(opt && opt.audio);

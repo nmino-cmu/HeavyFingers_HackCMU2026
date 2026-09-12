@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import math
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -48,17 +49,22 @@ def _parse_bmp(data: bytes) -> list[float]:
 
 
 def decode_gray(data: bytes) -> tuple[int, int, list[float]]:
-    """Full-res gray [0,1]. JPEG/PNG via sips."""
+    """Full-res gray [0,1]. JPEG/PNG via sips, else Pillow."""
     if data[:2] == b"BM":
         return _parse_bmp_wh(data)
-    with tempfile.TemporaryDirectory() as td:
-        src = Path(td) / "in.bin"
-        dst = Path(td) / "out.bmp"
-        src.write_bytes(data)
-        r = subprocess.run(["sips", "-s", "format", "bmp", str(src), "--out", str(dst)], capture_output=True)
-        if r.returncode != 0 or not dst.is_file():
-            raise ValueError("image decode failed")
-        return _parse_bmp_wh(dst.read_bytes())
+    if shutil.which("sips"):
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "in.bin"
+            dst = Path(td) / "out.bmp"
+            src.write_bytes(data)
+            r = subprocess.run(["sips", "-s", "format", "bmp", str(src), "--out", str(dst)], capture_output=True)
+            if r.returncode == 0 and dst.is_file():
+                return _parse_bmp_wh(dst.read_bytes())
+    from PIL import Image
+
+    im = Image.open(io.BytesIO(data)).convert("L")
+    w, h = im.size
+    return w, h, [p / 255.0 for p in im.getdata()]
 
 
 def prep_face(grid: list[float]) -> list[float]:
@@ -99,20 +105,11 @@ def _nearest(px, w, h, nw, nh):
 
 
 def image_to_grid(data: bytes) -> list[float]:
-    """Any still → 64×64 gray in [0,1]. JPEG/PNG via sips; BMP parsed here."""
-    if data[:2] == b"BM":
-        return _parse_bmp(data)
-    with tempfile.TemporaryDirectory() as td:
-        src = Path(td) / "in.bin"
-        dst = Path(td) / "out.bmp"
-        src.write_bytes(data)
-        r = subprocess.run(
-            ["sips", "-z", str(FACE_N), str(FACE_N), "-s", "format", "bmp", str(src), "--out", str(dst)],
-            capture_output=True,
-        )
-        if r.returncode != 0 or not dst.is_file():
-            raise ValueError("image decode failed")
-        return _parse_bmp(dst.read_bytes())
+    """Any still → 64×64 gray in [0,1]."""
+    w, h, pixels = decode_gray(data)
+    if w == FACE_N and h == FACE_N:
+        return pixels
+    return _nearest(pixels, w, h, FACE_N, FACE_N)
 
 
 def wav_pcm(data: bytes) -> tuple[list[int], int]:

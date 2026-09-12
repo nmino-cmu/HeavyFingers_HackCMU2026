@@ -208,10 +208,11 @@ def test_vultr_face_uses_profile():
 
 def test_voice_thresh_rejects_other_talker():
     # 490603 face-pass take L2 0.053; last take (other talker, face 377) L2 0.093.
-    from umbra.verify import VOICE_L2_MAX
+    from umbra.verify import voice_max
 
-    check(0.053 < VOICE_L2_MAX, VOICE_L2_MAX)
-    check(VOICE_L2_MAX < 0.093, VOICE_L2_MAX)
+    check(0.053 < voice_max(True), voice_max(True))
+    check(voice_max(True) > 0.07, "face ok loosens voice past 0.07")
+    check(voice_max(False) < 0.093, voice_max(False))
 
 
 def test_voice_stricter_when_face_fails():

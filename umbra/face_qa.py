@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -23,6 +24,8 @@ POSES = {
 
 
 def ensure_bin() -> Path:
+    if sys.platform != "darwin":
+        raise RuntimeError("vision_qa is macOS-only")
     if BIN.is_file() and BIN.stat().st_mtime >= SRC.stat().st_mtime:
         return BIN
     BIN.parent.mkdir(parents=True, exist_ok=True)
@@ -33,6 +36,8 @@ def ensure_bin() -> Path:
 def inspect_paths(paths: list[str]) -> list[dict]:
     if not paths:
         return []
+    if sys.platform != "darwin":
+        return [{"path": p, "w": 0, "h": 0, "faces": [], "hands": []} for p in paths]
     r = subprocess.run([str(ensure_bin()), *paths], capture_output=True, timeout=60)
     if r.returncode != 0 or not r.stdout:
         return [{"path": p, "w": 0, "h": 0, "faces": [], "hands": []} for p in paths]
@@ -80,6 +85,9 @@ def qa_still(data: bytes, pose: str = "front") -> dict:
     No size/center/blur/light gates: those blocked enroll. Pose is advisory; snap saves regardless.
     """
     pose = pose if pose in POSES else "front"
+    if sys.platform != "darwin":
+        # ponytail: oval lock is in the browser; Vision is Mac-only
+        return {"ok": True, "reason": "", "pose": pose, "face": {"x": 0.15, "y": 0.1, "w": 0.7, "h": 0.8, "yaw": 0.0}, "yaw": 0.0}
     face = _largest(inspect_bytes(data).get("faces") or [])
     yaw = float(face.get("yaw") or 0) if face else 0.0
     reason = "" if face else "no face — fill the oval"

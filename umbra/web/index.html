@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <title>Umbra</title>
-  <link rel="icon" href="/assets/logo.png" type="image/png">
-  <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=desk7">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="stylesheet" href="style.css?v=chill2">
 </head>
 <body class="desktop" data-bg="subtle">
 <div data-umbra-bg></div>
 <header class="topbar">
-  <a class="brand" href="/"><img src="/assets/logo.png" width="94" height="43" alt="Umbra"></a>
+  <a class="brand" href="index.html"><img src="assets/logo.png" width="94" height="43" alt="Umbra"></a>
   <div class="top-actions">
-    <a class="win-btn" href="/enroll">Register</a>
-    <a class="win-btn" href="/signin">Log in</a>
+    <a class="win-btn" href="enroll.html">Register</a>
+    <a class="win-btn" href="signin.html">Log in</a>
   </div>
 </header>
 <div class="shell">
@@ -29,34 +29,37 @@
       </div>
       <div class="win-body">
         <div class="win-copy">
-          <p>Sign up. Set up your wallets.</p>
-          <p>Don't worry.</p>
-          <p>You're completely invisible.</p>
+          <p class="win-kicker">Sign up. Set up your wallets.</p>
+          <p class="win-hero">You're completely invisible.</p>
+          <p class="win-aside">Don't worry.</p>
         </div>
         <div class="checks">
-          <ul>
-            <li>Face</li>
-            <li>Voice</li>
-          </ul>
-          <span class="tag">Fully HME</span>
+          <div class="check-pills">
+            <span class="tag">Face</span>
+            <span class="tag">Voice</span>
+          </div>
+          <span class="tag tag-hot">Fully HME</span>
         </div>
-        <a class="win-btn cta" href="/enroll">Begin Registration</a>
+        <a class="win-btn cta" href="enroll.html">Begin Registration</a>
       </div>
       <div class="win-resize" aria-hidden="true"></div>
     </article>
 
     <section class="win" data-win="enrolled" id="justEnrolled" hidden data-win-preset="note">
       <div class="win-bar">
-        <h2 id="enrollNum"></h2>
+        <h2>Keep this</h2>
         <div class="win-chrome">
           <button type="button" data-win-min aria-label="Minimize">-</button>
           <button type="button" data-win-close aria-label="Close">X</button>
         </div>
       </div>
       <div class="win-body">
-        <p>Save this number to sign in later.</p>
-        <a class="win-btn" href="/signin">Sign in</a>
-        <a class="win-btn" href="/home">Open desk</a>
+        <p id="enrollNum"></p>
+        <p class="win-aside">Save this number to sign in later.</p>
+        <div class="note-actions">
+          <a class="win-btn" href="signin.html">Sign in</a>
+          <a class="win-btn" href="home.html">Open desk</a>
+        </div>
       </div>
       <div class="win-resize" aria-hidden="true"></div>
     </section>
@@ -103,9 +106,9 @@
     </article>
   </div>
 </div>
-<script src="/umbra.js"></script>
-<script src="/vendor/grain.js"></script>
-<script src="/windows.js?v=wire5"></script>
+<script src="umbra.js"></script>
+<script src="vendor/grain.js?v=chill2"></script>
+<script src="windows.js?v=chill2"></script>
 <script>
 (function () {
   const just = new URLSearchParams(location.search).get("enrolled");
@@ -126,7 +129,7 @@
       const n = cipher.children[(Math.random() * cipher.children.length) | 0];
       n.textContent = glyphs[(Math.random() * glyphs.length) | 0];
       n.classList.toggle("on");
-    }, 90);
+    }, 160);
   }
   const wave = document.getElementById("utWave");
   if (wave) {

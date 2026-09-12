@@ -1,47 +1,40 @@
-/* Tiny film-grain overlay (no npm). Mixes with the chroma-tiled logo. */
+/* Dark film grain. Seamless tile drift — no frame-swap, no loop snap. */
 (function (g) {
-  const SIZE = 128;
-
-  function noiseCanvas() {
+  function noiseURL(size, mid, spread) {
     const c = document.createElement("canvas");
-    c.width = SIZE;
-    c.height = SIZE;
+    c.width = c.height = size;
     const ctx = c.getContext("2d");
-    const img = ctx.createImageData(SIZE, SIZE);
+    const img = ctx.createImageData(size, size);
     const d = img.data;
     for (let i = 0; i < d.length; i += 4) {
-      const v = (Math.random() * 255) | 0;
-      d[i] = d[i + 1] = d[i + 2] = v;
+      const n = (Math.random() + Math.random()) * 0.5;
+      const v = mid + (n - 0.5) * spread;
+      d[i] = v + 3;
+      d[i + 1] = v - 6;
+      d[i + 2] = v + 8;
       d[i + 3] = 255;
     }
     ctx.putImageData(img, 0, 0);
+    ctx.filter = "blur(1.1px)";
+    ctx.drawImage(c, 0, 0);
     return c.toDataURL("image/png");
   }
 
-  function mount(host, opts) {
-    const o = opts || {};
+  function mount(host) {
     if (!host) return { destroy: function () {} };
     let layer = host.querySelector(".grain-layer");
     if (!layer) {
       layer = document.createElement("div");
       layer.className = "grain-layer";
+      layer.innerHTML = '<i class="grain-film"></i><i class="grain-dust"></i>';
       host.appendChild(layer);
     }
-    const opacity = o.opacity == null ? 0.18 : o.opacity;
-    layer.style.cssText =
-      "position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;" +
-      "opacity:" + opacity + ";" +
-      "background-image:url(" + noiseCanvas() + ");" +
-      "background-size:" + SIZE + "px " + SIZE + "px;";
-    let timer = null;
-    if (o.animate !== false) {
-      timer = setInterval(function () {
-        layer.style.backgroundImage = "url(" + noiseCanvas() + ")";
-      }, o.interval || 180);
-    }
+    const film = layer.querySelector(".grain-film");
+    const dust = layer.querySelector(".grain-dust");
+    if (film) film.style.backgroundImage = "url(" + noiseURL(512, 88, 22) + ")";
+    if (dust) dust.style.backgroundImage = "url(" + noiseURL(384, 96, 16) + ")";
     return {
       destroy: function () {
-        if (timer) clearInterval(timer);
         layer.remove();
       },
     };

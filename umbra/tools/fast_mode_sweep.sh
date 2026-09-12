@@ -25,6 +25,10 @@ LIVE=(
 )
 
 for f in "${LIVE[@]}"; do
+  # main dropped plan files after submit; skip ghosts so this loop does not false-alarm
+  if [ ! -f "$f" ]; then
+    continue
+  fi
   if ! grep -q "$SLUG" "$f"; then
     echo "MISSING $SLUG in $f"
     FAIL=1

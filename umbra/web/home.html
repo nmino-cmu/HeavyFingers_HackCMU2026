@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <title>Umbra — desk</title>
-  <link rel="icon" href="/assets/logo.png" type="image/png">
-  <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=desk8">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="stylesheet" href="style.css?v=chill2">
 </head>
 <body class="desktop" data-bg="subtle">
 <div data-umbra-bg></div>
 <header class="topbar">
-  <a class="brand" href="/home"><img src="/assets/logo.png" width="94" height="43" alt="Umbra"></a>
+  <a class="brand" href="home.html"><img src="assets/logo.png" width="94" height="43" alt="Umbra"></a>
   <div class="top-actions">
     <span class="who" id="who">—</span>
-    <a class="win-btn" href="/">Log out</a>
+    <a class="win-btn" href="index.html">Log out</a>
   </div>
 </header>
 <div class="shell">
@@ -144,11 +144,11 @@
     </article>
   </div>
 </div>
-<script src="/umbra.js?v=veil1"></script>
-<script src="/vendor/grain.js"></script>
-<script src="/windows.js?v=wire5"></script>
+<script src="umbra.js?v=veil1"></script>
+<script src="vendor/grain.js?v=chill2"></script>
+<script src="windows.js?v=chill2"></script>
 <script>
-document.querySelector('a[href="/"]').addEventListener("click", () => Umbra.session.clear());
+document.querySelector('a[href="index.html"]').addEventListener("click", () => Umbra.session.clear());
 
 function esc(s) {
   return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <title>Umbra — enroll</title>
-  <link rel="icon" href="/assets/logo.png" type="image/png">
-  <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=all5">
+  <link rel="icon" href="assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="stylesheet" href="style.css?v=chill2">
 </head>
 <body class="desktop face-page" data-bg="face">
 <div data-umbra-bg></div>
@@ -15,13 +15,23 @@
       <h2>Face</h2>
       <div class="win-chrome">
         <button type="button" data-win-min aria-label="Minimize">-</button>
-        <a class="win-btn face-x" href="/" aria-label="Close">X</a>
+        <a class="win-btn face-x" href="index.html" aria-label="Close">X</a>
       </div>
+    </div>
+    <p id="script" class="card" hidden></p>
+    <div id="recDeck" hidden>
+      <div class="rec-top">
+        <span class="rec-dot" aria-hidden="true"></span>
+        <strong id="recLabel">Recording</strong>
+        <span id="recTime">0:00</span>
+        <button type="button" id="stopVoice">Stop</button>
+      </div>
+      <canvas id="recWave" width="640" height="56"></canvas>
     </div>
     <div class="face-view" id="stage">
       <video id="camPreview" class="mirror" playsinline muted autoplay></video>
       <div id="guide" hidden><div class="oval"></div></div>
-      <img class="oval-asset" src="/assets/oval.svg" width="417" height="535" alt="">
+      <img class="oval-asset" src="assets/oval.svg?v=pretty2" width="417" height="535" alt="">
     </div>
     <div class="face-foot">
       <p class="muted" id="enrollHint">One category at a time. Begin sign up to open the camera.</p>
@@ -37,16 +47,6 @@
       </div>
     </div>
     <input type="file" id="voiceFile" accept="audio/*,.wav,.m4a,.mp3,.aac,.caf" hidden>
-    <p id="script" class="card" hidden></p>
-    <div id="recDeck" hidden>
-      <div class="rec-top">
-        <span class="rec-dot" aria-hidden="true"></span>
-        <strong id="recLabel">Recording</strong>
-        <span id="recTime">0:00</span>
-        <button type="button" id="stopVoice">Stop</button>
-      </div>
-      <canvas id="recWave" width="640" height="56"></canvas>
-    </div>
     <p id="voiceDone" class="card" hidden>Finished. Play it back, then save encrypted.</p>
     <audio id="voicePlay" controls hidden></audio>
     <div class="thumbs" id="thumbs"></div>
@@ -60,9 +60,9 @@
     <div class="win-resize" aria-hidden="true"></div>
   </article>
 </div>
-<script src="/umbra.js?v=all5"></script>
-<script src="/vendor/grain.js"></script>
-<script src="/windows.js?v=wire5"></script>
+<script src="umbra.js?v=all5"></script>
+<script src="vendor/grain.js?v=chill2"></script>
+<script src="windows.js?v=chill2"></script>
 <script>
 const FACE_POSES = ["front", "front", "front"];
 const FACE_HINT = ["Look straight at the camera", "Hold still, still looking straight", "One more straight-on, same light"];
@@ -272,7 +272,7 @@ function stopClock() {
 
 async function openCam() {
   if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    throw new Error("Camera is blocked on this URL. Use http://127.0.0.1:8765/enroll");
+    throw new Error("Camera is blocked on this URL. Use HTTPS or http://127.0.0.1:8765/enroll");
   }
   try {
     stream = await navigator.mediaDevices.getUserMedia({video: {width: {ideal: 1280}, height: {ideal: 720}}, audio: true});
@@ -506,7 +506,7 @@ document.getElementById("clearCat").onclick = () => clearCategory();
 document.getElementById("doEnroll").onclick = () => saveEncrypted().catch(showErr);
 document.getElementById("enter").onclick = () => {
   if (!enrolledId) return;
-  location.assign("/?enrolled=" + encodeURIComponent(enrolledId));
+  location.assign("index.html?enrolled=" + encodeURIComponent(enrolledId));
 };
 rosterLine();
 render();

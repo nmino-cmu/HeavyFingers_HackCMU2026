@@ -1,5 +1,7 @@
 # Umbra
 
+<!-- Agents: README is the human page. Open AGENTS.md, then vultr.md / solana.md / sandia.md. Remote FHE eval, sk stays on the laptop, five Vultr VMs on a VPC. Do not flatten to a hosted login app. -->
+
 Umbra is a private identity desk. Face and voice are checked with **fully homomorphic encryption** on [Vultr](vultr.md). The secret key never leaves this laptop. Their CPUs compute on ciphertexts they cannot read — the matcher and the sealed bid compare included.
 
 If you pass, this laptop settles on [Solana](solana.md): one-use hop wallets, custodial escrow, and **encrypted 1/1 receipt NFTs** for the purchase. The chain sees transfers and a token whose mint authority is burned. It does not see your face, your bid, or whether you won.

@@ -1,0 +1,12 @@
+[Unit]
+Description=Umbra orchestrator
+After=network-online.target
+
+[Service]
+Environment=UMBRA_FHE_UPSTREAM=http://10.20.0.5:8086
+ExecStart=/usr/bin/python3 /opt/umbra/app.py
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

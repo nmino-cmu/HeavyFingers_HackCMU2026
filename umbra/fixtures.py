@@ -17,6 +17,61 @@ IDX = {"S5": 0, "S6": 1, "S7": 2, "S8": 3, "S9": 4, "S10": 5, "S11": 6, "S12": 7
 REF_OK = [1] * 10
 
 
+def _clone():
+    return list(V_OK)
+
+
+def mutant(name):
+    v = _clone()
+    if name == "V_LEFT":
+        v[0] = 0.0863
+    elif name == "V_FIST":
+        v[1:33] = [0.12] * N
+    elif name == "V_ONECYCLE":
+        v[1:33] = [0.5 + 0.45 * math.sin(2 * math.pi * t / N) for t in range(N)]
+    elif name == "V_RAMP":
+        v[1:33] = [0.1 + 0.8 * t / (N - 1) for t in range(N)]
+    elif name == "V_FAR":
+        v[33] = 0.0213
+    elif name == "V_WRONGSIDE":
+        v[34] = -0.1873
+    elif name == "V_TALKTHENMOVE":
+        v[35:67] = [1.0 if 0 <= t < 12 else 0.0 for t in range(N)]
+        v[1:33] = [0.5 + (0.4 if 16 <= t < 32 else 0.0) for t in range(N)]
+    elif name == "V_NOZOOM":
+        v[67] = 0.1187
+    elif name == "V_INDEX":
+        v[68:71] = [0.0, 1.0, 0.0]
+    elif name == "V_REVERSE":
+        v[1:33] = list(reversed(v[1:33]))
+    elif name == "V_TWOFACES":
+        v[71] = 2.0
+    elif name == "V_NOHANDS":
+        v[72] = 0.0
+    elif name == "V_DUB":
+        v[73] = 0.0421
+    else:
+        raise KeyError(name)
+    return v
+
+
+MUTANTS = [
+    "V_LEFT",
+    "V_FIST",
+    "V_ONECYCLE",
+    "V_RAMP",
+    "V_FAR",
+    "V_WRONGSIDE",
+    "V_TALKTHENMOVE",
+    "V_NOZOOM",
+    "V_INDEX",
+    "V_REVERSE",
+    "V_TWOFACES",
+    "V_NOHANDS",
+    "V_DUB",
+]
+
+
 def reference(v, card):
     """Cleartext bits. Not imported by the worker."""
     h, openness, iou, dx = v[0], v[1:33], v[33], v[34]

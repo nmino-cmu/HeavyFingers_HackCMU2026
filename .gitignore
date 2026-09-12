@@ -3,3 +3,8 @@ umbra/.env
 *.pem
 *.sk
 client.zip
+umbra/artifacts/
+.venv-umbra/
+.artifacts/
+**/__pycache__/
+*.pyc

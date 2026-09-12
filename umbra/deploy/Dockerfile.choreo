@@ -1,0 +1,15 @@
+FROM python:3.11-slim-bookworm
+# ld is required to JIT via_mlir server.zip
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake git binutils \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/umbra
+COPY umbra /opt/umbra-src/umbra
+ENV PYTHONPATH=/opt/umbra-src
+RUN pip install --no-cache-dir 'concrete-ml==1.7.0' numpy torch \
+    && python3 /opt/umbra-src/umbra/tools/compile_choreo.py --out /opt/umbra/artifacts \
+    && rm -f /opt/umbra/artifacts/client.zip
+COPY umbra/worker/choreo_server.py /opt/umbra/choreo_server.py
+ENV UMBRA_FHE_ARTIFACTS=/opt/umbra/artifacts
+ENV UMBRA_FHE_VPC_IP=10.20.0.5
+EXPOSE 8081
+CMD ["python3", "/opt/umbra/choreo_server.py"]

@@ -1,0 +1,4 @@
+umbra/.env
+umbra/artifacts
+**/__pycache__
+**/.DS_Store

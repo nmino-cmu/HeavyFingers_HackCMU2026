@@ -1,6 +1,7 @@
 import json
 import os
 import pathlib
+import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -54,14 +55,16 @@ class Orch(BaseHTTPRequestHandler):
             headers={"X-Umbra-Nonce": nonce, "Content-Type": "application/octet-stream"},
         )
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=600) as resp:
                 out = resp.read()
                 echoed = resp.headers.get("X-Umbra-Nonce") or nonce
+                self._send(resp.status, out, {"X-Umbra-Nonce": echoed} if echoed else None)
+        except urllib.error.HTTPError as e:
+            out = e.read()
+            echoed = e.headers.get("X-Umbra-Nonce") or nonce
+            self._send(e.code, out, {"X-Umbra-Nonce": echoed} if echoed else None)
         except Exception as e:
             self._send(502, str(e).encode(), {"X-Umbra-Nonce": nonce} if nonce else None)
-            return
-        extra = {"X-Umbra-Nonce": echoed} if echoed else None
-        self._send(200, out, extra)
 
 
 if __name__ == "__main__":

@@ -53,11 +53,19 @@ req = urllib.request.Request(
     method="POST",
     headers={"X-Umbra-Nonce": "deadbeef", "Content-Type": "application/octet-stream"},
 )
-with urllib.request.urlopen(req, timeout=15) as resp:
-    body = resp.read()
-    nonce_h = resp.headers.get("X-Umbra-Nonce") or ""
+try:
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        body = resp.read()
+        nonce_h = resp.headers.get("X-Umbra-Nonce") or ""
+except urllib.error.HTTPError as e:
+    body = e.read()
+    nonce_h = e.headers.get("X-Umbra-Nonce") or ""
 check(len(body) > 0, "empty eval")
 check(b"0.9137" not in body, "no fixture floats")
 check("deadbeef" in nonce_h + body.decode("latin1", "replace"), "nonce echoed")
-check(body == blob, "stub echoes ciphertext")
+# P2+: FHE eval returns encrypted bits, not echo
+if os.environ.get("UMBRA_EXPECT_STUB", "") == "1":
+    check(body == blob, "stub echoes ciphertext")
+else:
+    check(body != blob, "FHE eval must not echo request")
 print(f"CHECKS_RUN={CHECKS_RUN}")

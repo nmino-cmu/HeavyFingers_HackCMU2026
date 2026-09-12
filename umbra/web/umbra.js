@@ -2,7 +2,7 @@
 (function (g) {
   let localP;
   function local() {
-    localP = localP || import("./fhe-local.js?v=fft1");
+    localP = localP || import("./fhe-local.js?v=pass1");
     return localP;
   }
   async function j(url, opt) {

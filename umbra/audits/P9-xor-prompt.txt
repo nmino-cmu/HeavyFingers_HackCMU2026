@@ -1,0 +1,15 @@
+XOR audit for Umbra P9 hops (S21–S23, S25–S26). Prize spec §4 table + XOR law only.
+
+XOR law: client encrypts; worker never decrypts; client decrypts bits. Spend keys / Whisper / raw mp4 / wav / Secure Enclave stay on the Mac. Never a plaintext classifier on either VM. Crops stay local.
+
+Read these files and answer last line only as PASS or FAIL.
+- umbra/hops.py
+- umbra/web/serve.py
+- umbra/web/index.html
+- umbra/test_hops.py
+- umbra/test_sk_absent.py
+- umbra/decide.py
+
+Fail if: worker/Vultr can sign; spend key or hop secret uploaded; memo or biometric/template hash placed on chain; hops run after S19 abort; UI claims FHE watched video / FHE transcribed / Touch ID / unhackable / any website already works.
+
+Verdict = last line only: PASS or FAIL. If FAIL, one sentence why.

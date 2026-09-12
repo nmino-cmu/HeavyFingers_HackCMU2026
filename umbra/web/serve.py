@@ -59,33 +59,12 @@ class H(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/fixture":
             os.environ.setdefault("UMBRA_FHE_ARTIFACTS", _artifacts())
-            from umbra.client import Client
-            from umbra.decide import decide
-            from umbra.fixtures import CARD_RRP, REF_OK, V_OK, reference
-            from umbra.s1 import s1
+            from umbra.assemble import run
 
-            p3 = ROOT / "umbra/artifacts-p3/rrp"
-            if (p3 / "client.zip").is_file():
-                url = os.environ["UMBRA_WORKER_URL"].rstrip("/") + "/eval3"
-                client = Client(artifact_dir=p3)
-            else:
-                url = os.environ["UMBRA_WORKER_URL"].rstrip("/") + "/eval"
-                client = Client()
-            body = client.pack_eval_body(V_OK, CARD_RRP)
-            import urllib.request
-
-            req = urllib.request.Request(
-                url, data=body, method="POST", headers={"Content-Type": "application/octet-stream"}
-            )
-            with urllib.request.urlopen(req, timeout=600) as resp:
-                bits = client.eval_bits(resp.read())
-            local = reference(V_OK, CARD_RRP)
-            d = decide(bits, local, s1("the lazy dog fox am is hack win", "lazy dog fox"))
+            d, payload = run()
             global DECIDE
             DECIDE = d
-            s1_bit = 1
-            s19_bit = 0 if d.abort else 1
-            self._send(200, json.dumps({"bits": list(bits) + [s1_bit, s19_bit], "ref": REF_OK, "ok": d.ok}).encode())
+            self._send(200, json.dumps(payload).encode())
             return
         if path == "/hop":
             from umbra.hops import run

@@ -1,0 +1,12 @@
+FROM python:3.11-slim-bookworm
+# Prefer native pip on the farm VM. Do not docker build without </dev/null.
+RUN apt-get update && apt-get install -y --no-install-recommends gcc \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/umbra
+COPY umbra /opt/umbra-src/umbra
+ENV PYTHONPATH=/opt/umbra-src
+RUN pip install --no-cache-dir tenseal numpy
+ENV UMBRA_FACE_VPC_IP=10.20.0.6
+ENV UMBRA_FACE_PORT=8084
+EXPOSE 8084
+CMD ["python3", "/opt/umbra-src/umbra/worker/face_server.py"]

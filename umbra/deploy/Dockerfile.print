@@ -1,0 +1,15 @@
+FROM python:3.10-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake git binutils \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /opt/umbra
+COPY umbra /opt/umbra-src/umbra
+ENV PYTHONPATH=/opt/umbra-src
+RUN pip install --no-cache-dir 'concrete-ml==1.7.0' numpy \
+    && python3 /opt/umbra-src/umbra/tools/compile_print.py --out /opt/umbra/print/artifacts \
+    && rm -f /opt/umbra/print/artifacts/client.zip /opt/umbra/print/artifacts/*.sk
+COPY umbra/worker/print_server.py /opt/umbra/print_server.py
+ENV UMBRA_PRINT_ARTIFACTS=/opt/umbra/print/artifacts
+ENV UMBRA_PRINT_STORE=/opt/umbra/print/templates
+ENV UMBRA_PRINT_VPC_IP=10.20.0.6
+EXPOSE 8082
+CMD ["python3", "/opt/umbra/print_server.py"]

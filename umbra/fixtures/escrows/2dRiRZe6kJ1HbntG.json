@@ -1,0 +1,16 @@
+{
+  "id": "2dRiRZe6kJ1HbntG",
+  "status": "released",
+  "payer": "VWvZgaSaWtZZnpiS5An9zSuuzTkRhELFfTbCHbvt9C4",
+  "payee": "DfgYv1sw56hVBtz753Hn6pKMg5kWiJjWUCJ91ek7af2K",
+  "amount_sol": 0.05,
+  "escrow_address": "2dRiRZe6kJ1HbntGfgmrQywGfpH2aDH6QVHyEZxbcN6J",
+  "keypair_path": "C:\\Users\\hello\\Desktop\\Heavy_finger\\HeavyFingers_HackCMU2026\\umbra\\fixtures\\escrows\\2dRiRZe6kJ1HbntG.keypair.json",
+  "deposit_sig": "5GuGToxSeUBgXcyTRaVmtPGs2Q9Rh9YjMKsjTwJchytmcxFaiJNS4SgzMA1uBE6FYhv6qT4mNXpkHjAEggQAFYnZ",
+  "deposit_explorer": "https://explorer.solana.com/tx/5GuGToxSeUBgXcyTRaVmtPGs2Q9Rh9YjMKsjTwJchytmcxFaiJNS4SgzMA1uBE6FYhv6qT4mNXpkHjAEggQAFYnZ?cluster=devnet",
+  "settle_sig": "5EBfUtTZLMWVV3DajHccfFcDDumZSyFPykGQhVBHHDHk9yExz1XG8WMWRccNgEap3HZFAVRkinUt7fViAHeQzz9w",
+  "settle_explorer": "https://explorer.solana.com/tx/5EBfUtTZLMWVV3DajHccfFcDDumZSyFPykGQhVBHHDHk9yExz1XG8WMWRccNgEap3HZFAVRkinUt7fViAHeQzz9w?cluster=devnet",
+  "rpc": "https://api.devnet.solana.com",
+  "settled_sol": 0.049995,
+  "settled_to": "DfgYv1sw56hVBtz753Hn6pKMg5kWiJjWUCJ91ek7af2K"
+}

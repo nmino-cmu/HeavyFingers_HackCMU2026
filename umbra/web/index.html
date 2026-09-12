@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Umbra — one lot</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0c0d10; --ink:#e8e6df; --muted:#8b8a84; --ok:#3dba7a; --no:#c45c4a; --line:#2a2b30; }
+    body { margin:0; font: 16px/1.45 ui-sans-serif, system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+    main { max-width: 42rem; margin: 2rem auto; padding: 0 1.25rem; }
+    h1 { font-weight: 600; letter-spacing: -0.02em; }
+    .card { border:1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; margin: 1rem 0; }
+    .card pre { white-space: pre-wrap; margin: 0.4rem 0 0; font: 14px/1.4 ui-monospace, monospace; }
+    .row { display:flex; gap:0.6rem; flex-wrap:wrap; margin: 0.8rem 0; }
+    button, .file { background:#1a1b20; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:0.45rem 0.8rem; cursor:pointer; }
+    .muted { color:var(--muted); font-size: 0.92rem; }
+    .lights { display:flex; gap:0.45rem; flex-wrap:wrap; align-items:center; }
+    .bit { width:1.35rem; height:1.35rem; border-radius:50%; background:#2a2b30; display:grid; place-items:center; font-size:0.62rem; color:#bbb; }
+    .bit.on { background:var(--ok); color:#062; }
+    .bit.off { background:var(--no); color:#fff; }
+    a { color:#8cb4ff; }
+    video { width:100%; max-height:12rem; background:#000; border-radius:8px; margin-top:0.5rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Umbra</h1>
+  <p class="muted">Same person, this card, right now. Crops stay on this machine. The worker sees ciphertext. A pass grows a hop path — not an account.</p>
+
+  <section class="card" id="card-box">
+    <strong>Card</strong>
+    <pre id="card">…</pre>
+  </section>
+
+  <section class="card">
+    <strong>Crop</strong>
+    <p class="muted">Record or upload a clip. It is not sent to the worker as video.</p>
+    <div class="row">
+      <button type="button" id="record">Record</button>
+      <label class="file">Upload crop <input id="upload" type="file" accept="video/*,image/*" hidden></label>
+    </div>
+    <video id="preview" hidden playsinline></video>
+  </section>
+
+  <section class="card">
+    <strong>Bits</strong>
+    <p class="muted">Lights are decrypted bits on this machine. Words (S1) are local.</p>
+    <div class="lights" id="lights"></div>
+    <div class="row">
+      <button type="button" id="fixture">Run fixture</button>
+      <button type="button" id="hop">Hop after pass</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <strong>Explorer</strong>
+    <ol id="explorer"></ol>
+  </section>
+</main>
+<script>
+const LABELS = ["S5","S6","S7","S8","S9","S10","S11","S12","S13","S14","S1","S19"];
+const lights = document.getElementById("lights");
+LABELS.forEach(l => {
+  const d = document.createElement("div");
+  d.className = "bit";
+  d.textContent = l.replace("S","");
+  d.title = l;
+  lights.appendChild(d);
+});
+function setBits(bits) {
+  [...lights.children].forEach((el, i) => {
+    el.classList.toggle("on", bits[i] === 1);
+    el.classList.toggle("off", bits[i] === 0);
+  });
+}
+async function j(url, opt) {
+  const r = await fetch(url, opt);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+j("/card").then(c => {
+  document.getElementById("card").textContent =
+    `say:    ${c.say}\nhand:   ${c.hand}\nmotion: ${c.motion}\nwhere:  ${c.where}\nside:   ${c.side}\nend:    ${c.end}`;
+});
+j("/last").then(h => {
+  if (h && h.explorers) {
+    document.getElementById("explorer").innerHTML = h.explorers.map(u => `<li><a href="${u}">${u}</a></li>`).join("");
+  }
+}).catch(() => {});
+document.getElementById("fixture").onclick = async () => {
+  const out = await j("/fixture", {method:"POST"});
+  setBits(out.bits);
+};
+document.getElementById("hop").onclick = async () => {
+  const out = await j("/hop", {method:"POST"});
+  document.getElementById("explorer").innerHTML = out.explorers.map(u => `<li><a href="${u}">${u}</a></li>`).join("");
+};
+document.getElementById("upload").onchange = ev => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const v = document.getElementById("preview");
+  v.src = URL.createObjectURL(f);
+  v.hidden = false;
+};
+document.getElementById("record").onclick = async () => {
+  const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+  const v = document.getElementById("preview");
+  v.srcObject = stream;
+  v.hidden = false;
+  v.play();
+};
+</script>
+</body>
+</html>

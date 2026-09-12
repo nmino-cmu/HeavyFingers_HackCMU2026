@@ -34,6 +34,19 @@ Notes:
 - orch public :8080 → /eval :8086 and /eval3 :8087
 - orch also /print :8082 /audio :8083 /face :8084 /bid :8085 on farm VPC
 
+ROW S4 STACKS_TRIED=openfhe,concrete RESULT=VULTR_CONCRETE
+EVAL_HOST=vultr
+MAC_FHE_PROBE=ok
+cmd: /opt/homebrew/Caskroom/miniforge/base/envs/umbra-p5/bin/python -c "import openfhe"
+stderr:
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/umbra-p5/lib/python3.11/site-packages/openfhe/__init__.py", line 1, in <module>
+    from .openfhe import *
+ModuleNotFoundError: No module named 'openfhe.openfhe'
+Mac OpenFHE wheel has no native module. Farm-fast OpenFHE EvalSub serialize was a try, not the shipped path.
+Shipped: Concrete TFHE print on 10.20.0.6:8082. test_print.py CHECKS_RUN=24 EVAL_HOST=vultr (orchestrator re-run).
+
 ROW S2 STACKS_TRIED=concrete,openfhe RESULT=VULTR_CONCRETE
 EVAL_HOST=vultr
 MAC_FHE_PROBE=ok

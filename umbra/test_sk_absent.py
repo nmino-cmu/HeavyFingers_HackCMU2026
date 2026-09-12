@@ -12,6 +12,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from umbra.eval_host import is_vultr
+from umbra.hops import hop_secret_hash, load_hop_key_hashes
 
 CHECKS_RUN = 0
 
@@ -38,6 +39,28 @@ def worker_find():
     check(not hits, f"secret material on worker: {hits}")
 
 
+def worker_file_hashes():
+    ip = os.environ["VULTR_WORKER_IP"]
+    cmd = [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        f"root@{ip}",
+        "find /opt/umbra /tmp -type f -exec sha256sum {} + 2>/dev/null || true",
+    ]
+    out = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    check(out.returncode == 0, f"ssh sha256 failed: {out.stderr}")
+    return {ln.split()[0] for ln in out.stdout.splitlines() if ln.strip()}
+
+
+def hop_key_hashes_absent():
+    h = hop_secret_hash()
+    remote = worker_file_hashes()
+    check(h not in remote, "ephemeral hop secret hash on worker")
+    for known in load_hop_key_hashes():
+        check(known not in remote, f"hop key hash on worker: {known}")
+
+
 def local_worker_with_sk_fails():
     """Mac holds client.zip; that filename on a worker tree is the leak the SSH find flags."""
     src = os.path.join(ROOT, "umbra", "artifacts", "client.zip")
@@ -54,6 +77,7 @@ def main():
         worker_find()
     else:
         worker_find()  # still require SSH to worker when reachable
+    hop_key_hashes_absent()
     local_worker_with_sk_fails()
     print(f"CHECKS_RUN={CHECKS_RUN}")
 

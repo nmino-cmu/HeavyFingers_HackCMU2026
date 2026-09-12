@@ -15,3 +15,8 @@ umbra/artifacts-print/
 .artifacts/
 **/__pycache__/
 *.pyc
+
+# assemble Mac client dirs (gitignored zips; local symlinks)
+umbra/artifacts-voice
+umbra/artifacts-bid
+umbra/artifacts_print

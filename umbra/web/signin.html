@@ -5,7 +5,7 @@
   <title>Umbra — do this</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=all1">
+  <link rel="stylesheet" href="/style.css?v=all4">
 </head>
 <body class="desktop face-page" data-bg="face">
 <div data-umbra-bg></div>
@@ -34,17 +34,23 @@
       <div class="face-btns">
         <button type="button" id="rec" disabled>Record</button>
         <button type="button" id="send" disabled>Send</button>
+        <button type="button" id="enter" hidden>Enter</button>
       </div>
     </div>
     <div class="face-meta">
       <div class="lights" id="lights"></div>
       <p class="muted" id="status"></p>
       <p id="err"></p>
+      <div class="seal-viz" id="seal" aria-hidden="true">
+        <p class="seal-kicker">Encrypting · key stays here</p>
+        <div class="ut-cipher" id="sealCipher"></div>
+        <div class="ut-wave" id="sealWave"></div>
+      </div>
     </div>
     <div class="win-resize" aria-hidden="true"></div>
   </article>
 </div>
-<script src="/umbra.js?v=all1"></script>
+<script src="/umbra.js?v=all4"></script>
 <script src="/vendor/grain.js"></script>
 <script src="/windows.js?v=wire5"></script>
 <script>
@@ -66,22 +72,19 @@ let recStarted = 0;
 let recClock = null;
 let armed = false;
 let qaBusy = false;
+let phase = "idle";
+let heldOut = null;
 const VOICE_MIN_MS = 12000;
 const LIGHTS = ["face", "voice", "words", "wave"];
 const LIGHT_LABEL = {face: "S3", voice: "S2", words: "S1", wave: "LV"};
 
+function laneItems() {
+  const eta = Umbra.loadEta();
+  return LIGHTS.map((id) => ({id, label: LIGHT_LABEL[id], name: id, eta: eta[id]}));
+}
+
 function paintLights(state, bits) {
-  const box = document.getElementById("lights");
-  box.className = state === "run" ? "lights busy" : "lights";
-  box.innerHTML = "";
-  LIGHTS.forEach((id, i) => {
-    const d = document.createElement("div");
-    d.className = "bit" + (state === "run" ? " run" : "");
-    d.textContent = LIGHT_LABEL[id];
-    d.title = id;
-    if (state === "done" && bits) d.classList.add(bits[i] === 1 ? "on" : "off");
-    box.appendChild(d);
-  });
+  Umbra.paintLanes(document.getElementById("lights"), {mode: state, items: laneItems(), bits: bits || []});
 }
 
 function showErr(e) {
@@ -182,9 +185,11 @@ function setTake(blob) {
   document.getElementById("cam").hidden = !!take;
   document.getElementById("guide").hidden = !!take;
   document.getElementById("send").disabled = !take;
+  document.getElementById("enter").hidden = true;
+  document.getElementById("stage").classList.toggle("rest", !!take);
   if (take) {
+    // One output only. Video already has the mic; playing takeMic too is a slapback echo.
     p.play().catch(() => {});
-    if (audioPlayUrl) a.play().catch(() => {});
     document.getElementById("status").textContent =
       "This clip (" + Math.round(take.size / 1024) + " KB) is what Send will upload. Play it back, then Send.";
   }
@@ -319,12 +324,51 @@ document.getElementById("rec").onclick = () => {
     }
     stream = s;
     const v = document.getElementById("cam");
+    v.muted = true;
     v.srcObject = s;
     v.hidden = false;
     v.play().catch(showErr);
     beginRec(s);
   }).catch(showErr);
 };
+
+function showResult(out) {
+  phase = "done";
+  Umbra.saveEta(out.ms);
+  paintLights("done", out.bits);
+  const ms = out.ms || {};
+  const face = (out.lanes || {}).face || {};
+  const voice = (out.lanes || {}).voice || {};
+  const words = (out.lanes || {}).words || {};
+  const th = out.thresh || {};
+  const fl = face.l2 == null ? "—" : Number(face.l2).toFixed(1);
+  const vl = voice.l2 == null ? "—" : Number(voice.l2).toFixed(2);
+  document.getElementById("status").textContent =
+    (out.ok ? "Pass " + out.id + "." : "Finished. Green = that check passed.") +
+    " Face L2 " + fl + " / " + (th.face || "?") +
+    ". Voice L2 " + vl + " / " + (th.voice || "?") +
+    (voice.err ? " (" + voice.err + ")" : "") +
+    (words.text ? ". Heard: " + words.text : "") +
+    ". " + (ms.total || 0) + " ms";
+  document.getElementById("send").disabled = false;
+  document.getElementById("enter").hidden = !out.ok;
+  if (out.ok) Umbra.session.set({ id: out.id || pid, at: Date.now() });
+}
+
+function startFhe() {
+  if (heldOut) {
+    const out = heldOut;
+    heldOut = null;
+    showResult(out);
+    return;
+  }
+  if (phase !== "encrypt") return;
+  phase = "fhe";
+  paintLights("run");
+  document.getElementById("status").textContent = "FHE on Vultr. Ciphertext only.";
+}
+
+document.getElementById("enter").onclick = () => location.assign("/home");
 
 document.getElementById("send").onclick = () => {
   showErr("");
@@ -337,9 +381,13 @@ document.getElementById("send").onclick = () => {
   pending.then((blob) => {
     if (!blob || !blob.size) throw new Error("record first");
     if (blob !== take) throw new Error("preview is stale — record again");
-    paintLights("run");
-    document.getElementById("status").textContent = "Sending the clip you just played. Face → Vultr FHE. Pass is face.";
+    phase = "encrypt";
+    heldOut = null;
+    document.getElementById("enter").hidden = true;
+    paintLights("idle");
+    document.getElementById("status").textContent = "Encrypting the clip you just played. Key stays here.";
     document.getElementById("send").disabled = true;
+    Umbra.sealViz(document.getElementById("seal"), true, 1000, startFhe);
     const fd = new FormData();
     fd.append("take", blob, takeName(blob));
     if (audioTake && audioTake.size) fd.append("audio", audioTake, audioTake.type.indexOf("mp4") >= 0 ? "mic.mp4" : "mic.webm");
@@ -347,27 +395,14 @@ document.getElementById("send").onclick = () => {
     fd.append("id", pid);
     return Umbra.verify(fd);
   }).then((out) => {
-    paintLights("done", out.bits);
-    const ms = out.ms || {};
-    const face = (out.lanes || {}).face || {};
-    const voice = (out.lanes || {}).voice || {};
-    const words = (out.lanes || {}).words || {};
-    const th = out.thresh || {};
-    const fl = face.l2 == null ? "—" : Number(face.l2).toFixed(1);
-    const vl = voice.l2 == null ? "—" : Number(voice.l2).toFixed(2);
-    document.getElementById("status").textContent =
-      (out.ok ? "Pass " + out.id + "." : "Finished. Green = that check passed.") +
-      " Face L2 " + fl + " / " + (th.face || "?") +
-      ". Voice L2 " + vl + " / " + (th.voice || "?") +
-      (voice.err ? " (" + voice.err + ")" : "") +
-      (words.text ? ". Heard: " + words.text : "") +
-      ". " + (ms.total || 0) + " ms";
-    if (out.ok) {
-      Umbra.session.set({ id: out.id || pid, at: Date.now() });
-      setTimeout(() => location.assign("/home"), 900);
-    }
-  }).catch(showErr).finally(() => {
+    if (phase === "encrypt") { heldOut = out; return; }
+    showResult(out);
+  }).catch((e) => {
+    phase = "idle";
+    heldOut = null;
+    paintLights("idle");
     document.getElementById("send").disabled = false;
+    showErr(e);
   });
 };
 

@@ -14,6 +14,7 @@
     roster: () => j("/roster"),
     hop: () => j("/hop", { method: "POST" }),
     last: () => j("/last"),
+    cutout: () => j("/cutout"),
     escrows: () => j("/escrows"),
     receipts: () => j("/receipts"),
     enroll: (fd) => j("/enroll", { method: "POST", body: fd }),
@@ -26,6 +27,58 @@
         localStorage.setItem(SESS, JSON.stringify(obj || {}));
       },
       clear() { localStorage.removeItem(SESS); },
+    },
+    // Stable desk nym. Never show a roster id. Seed stays in localStorage.
+    async veil() {
+      const sess = (g.Umbra.session.get() || {});
+      if (sess.veil && /^veil-[0-9a-f]{8}$/.test(sess.veil)) return sess.veil;
+      const seed = sess.id || (crypto.randomUUID && crypto.randomUUID()) || String(Date.now());
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("umbra-veil-v1" + seed));
+      const hex = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+      sess.veil = "veil-" + hex.slice(0, 8);
+      g.Umbra.session.set(sess);
+      return sess.veil;
+    },
+    inbox: {
+      _box: "umbra.inbox.v1",
+      _k: "umbra.seal.v1",
+      async _key() {
+        let raw = localStorage.getItem(g.Umbra.inbox._k);
+        if (!raw) {
+          const k = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+          const exp = await crypto.subtle.exportKey("raw", k);
+          raw = btoa(String.fromCharCode.apply(null, [...new Uint8Array(exp)]));
+          localStorage.setItem(g.Umbra.inbox._k, raw);
+          return k;
+        }
+        const bytes = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
+        return crypto.subtle.importKey("raw", bytes, "AES-GCM", false, ["encrypt", "decrypt"]);
+      },
+      load() {
+        try { return JSON.parse(localStorage.getItem(g.Umbra.inbox._box) || "[]"); } catch (e) { return []; }
+      },
+      async seal(handle, text) {
+        const k = await g.Umbra.inbox._key();
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, k, new TextEncoder().encode(String(text || "")));
+        const row = {
+          handle: String(handle || "nym").slice(0, 32),
+          iv: btoa(String.fromCharCode.apply(null, [...iv])),
+          ct: btoa(String.fromCharCode.apply(null, [...new Uint8Array(ct)])),
+          t: Date.now(),
+        };
+        const all = g.Umbra.inbox.load();
+        all.unshift(row);
+        localStorage.setItem(g.Umbra.inbox._box, JSON.stringify(all.slice(0, 32)));
+        return row;
+      },
+      async open(row) {
+        const k = await g.Umbra.inbox._key();
+        const iv = Uint8Array.from(atob(row.iv), (c) => c.charCodeAt(0));
+        const ct = Uint8Array.from(atob(row.ct), (c) => c.charCodeAt(0));
+        const raw = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, k, ct);
+        return new TextDecoder().decode(raw);
+      },
     },
     qaFace: (blob, pose) => {
       const fd = new FormData();
@@ -86,6 +139,115 @@
       c.height = v.videoHeight;
       c.getContext("2d").drawImage(v, 0, 0);
       return new Promise((res) => c.toBlob(res, "image/jpeg", 0.92));
+    },
+    sealViz: (root, on, ms, after) => {
+      if (!root) return;
+      const glyphs = "01ABCDEF89";
+      const cipher = root.querySelector(".ut-cipher");
+      const wave = root.querySelector(".ut-wave");
+      if (root._off) { clearTimeout(root._off); root._off = 0; }
+      root._after = on ? after : null;
+      if (on && cipher && !cipher.childElementCount) {
+        for (let i = 0; i < 48; i++) {
+          const s = document.createElement("span");
+          s.textContent = glyphs[(i * 7) % glyphs.length];
+          cipher.appendChild(s);
+        }
+      }
+      if (on && wave && !wave.childElementCount) {
+        for (let i = 0; i < 20; i++) {
+          const b = document.createElement("i");
+          b.style.setProperty("--d", (i * 0.07) + "s");
+          b.style.setProperty("--h", (24 + ((i * 17) % 56)) + "%");
+          wave.appendChild(b);
+        }
+      }
+      root.classList.toggle("is-on", !!on);
+      if (!on) {
+        if (root._t) clearInterval(root._t);
+        root._t = 0;
+        return;
+      }
+      if (!root._t) {
+        root._t = setInterval(() => {
+          if (!cipher || !cipher.children.length) return;
+          const n = cipher.children[(Math.random() * cipher.children.length) | 0];
+          n.textContent = glyphs[(Math.random() * glyphs.length) | 0];
+          n.classList.toggle("on");
+        }, 150);
+      }
+      // Encrypt flourish is 1s max. FHE eval keeps going on the lane bars.
+      const cap = ms == null ? 1000 : ms;
+      if (cap > 0) root._off = setTimeout(() => {
+        const next = root._after;
+        root._after = null;
+        g.Umbra.sealViz(root, false);
+        if (next) next();
+      }, cap);
+    },
+    loadEta: () => {
+      const base = { face: 19000, voice: 3500, words: 4500, wave: 19000 };
+      try { return Object.assign(base, JSON.parse(localStorage.getItem("umbra.laneEta") || "{}")); }
+      catch (e) { return base; }
+    },
+    saveEta: (ms) => {
+      if (!ms) return;
+      const cur = g.Umbra.loadEta();
+      const next = {};
+      ["face", "voice", "words", "wave"].forEach((k) => {
+        if (ms[k] > 200) next[k] = Math.round(cur[k] * 0.4 + ms[k] * 0.6);
+      });
+      if (Object.keys(next).length) localStorage.setItem("umbra.laneEta", JSON.stringify(Object.assign(cur, next)));
+    },
+    paintLanes: (box, opt) => {
+      if (!box) return;
+      opt = opt || {};
+      const items = opt.items || [];
+      const mode = opt.mode || "idle";
+      const bits = opt.bits || [];
+      if (box._raf) cancelAnimationFrame(box._raf);
+      box._raf = 0;
+      box.className = "lights" + (mode === "run" ? " busy" : "");
+      box.innerHTML = "";
+      items.forEach((it, i) => {
+        const row = document.createElement("div");
+        const done = mode === "done";
+        const ok = done && (it.ok === true || bits[i] === 1);
+        const no = done && (it.ok === false || bits[i] === 0);
+        row.className = "lane" + (mode === "run" ? " is-run" : "") + (ok ? " is-on" : "") + (no ? " is-off" : "");
+        const bit = document.createElement("div");
+        bit.className = "bit";
+        bit.textContent = it.label || "";
+        bit.title = it.id || "";
+        row.appendChild(bit);
+        if (mode !== "idle") {
+          const track = document.createElement("div");
+          track.className = "lane-track";
+          const fill = document.createElement("i");
+          fill.style.width = done ? "100%" : "0%";
+          track.appendChild(fill);
+          row.appendChild(track);
+          const name = document.createElement("span");
+          name.className = "lane-name";
+          name.textContent = it.name || it.id || "";
+          row.appendChild(name);
+        }
+        box.appendChild(row);
+      });
+      if (mode !== "run") return;
+      const t0 = Date.now();
+      const tick = () => {
+        const rows = box.querySelectorAll(".lane");
+        items.forEach((it, i) => {
+          const eta = Math.max(400, it.eta || 4000);
+          // ponytail: estimated fill, hold at 92% until /verify returns; stream ticks if we add them
+          const pct = Math.min(0.92, (Date.now() - t0) / eta);
+          const fill = rows[i] && rows[i].querySelector("i");
+          if (fill) fill.style.width = (pct * 100).toFixed(1) + "%";
+        });
+        box._raf = requestAnimationFrame(tick);
+      };
+      box._raf = requestAnimationFrame(tick);
     },
   };
 })(typeof window !== "undefined" ? window : globalThis);

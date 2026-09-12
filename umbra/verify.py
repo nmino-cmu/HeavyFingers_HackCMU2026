@@ -13,7 +13,7 @@ import tempfile
 
 import tenseal as ts
 
-from umbra.enroll_extract import qa_voice, wav_to_voice
+from umbra.enroll_extract import qa_voice, wav_pcm, wav_to_voice
 from umbra.face_ckks import decrypt_l2, encrypt_vec, pack_face
 from umbra.live_person import live_id
 from umbra.roster import Roster, unpack_record
@@ -26,7 +26,8 @@ os.environ.setdefault("UMBRA_KEY_DIR", str(HERE / "enroll_keys" / "_circuit"))
 # After Vision-align + FFT voice. Old 752886 enroll (unaligned / time-RMS) will miss — re-enroll.
 # Live same-you video vs enroll stills lands ~76–160. 90 was synthetic +3% gray and rejected you.
 FACE_L2_MAX = float(os.environ.get("UMBRA_FACE_L2_MAX", "220"))
-VOICE_L2_MAX = float(os.environ.get("UMBRA_VOICE_L2_MAX", "0.2"))
+# Same-you live takes land ~0.03–0.05. Other talker on this machine was 0.093. 0.2 ≈ pink noise.
+VOICE_L2_MAX = float(os.environ.get("UMBRA_VOICE_L2_MAX", "0.07"))
 # ponytail: occlusion = FHE L2 vs enroll, not a hand net. Recover-as-you is the filter-drop check.
 OCCLUDE_L2 = float(os.environ.get("UMBRA_OCCLUDE_L2", "220"))
 NO_FACE_L2 = 999.0
@@ -39,27 +40,18 @@ LANES = ("face", "voice", "words", "wave")
 
 
 def wave_from_l2s(scores, match=None, occlude=None) -> bool:
-    """You, then a miss (hand / cover), then you again. Still photo and filter-drop fail."""
+    """Any you + any miss (swipe at start or end). All-you still and all-miss fail."""
+    # ponytail: you→gone and miss→you both pass; restore you→miss→you if stills start leaking.
     match = FACE_L2_MAX if match is None else match
     occlude = OCCLUDE_L2 if occlude is None else occlude
     saw_me = False
     saw_miss = False
     for s in scores:
-        if s is None:
-            st = "miss"
-        elif s < match:
-            st = "me"
-        elif s >= occlude:
-            st = "miss"
-        else:
-            continue
-        if st == "me":
-            if saw_miss:
-                return True
-            saw_me = True
-        elif st == "miss" and saw_me:
+        if s is None or s >= occlude:
             saw_miss = True
-    return False
+        elif s < match:
+            saw_me = True
+    return saw_me and saw_miss
 
 
 def _post(path: str, body: bytes, timeout: int = 600) -> bytes:
@@ -102,6 +94,27 @@ def _suffix(data: bytes) -> str:
     return ".bin"
 
 
+def _to_wav(src: Path, dest: Path) -> bytes | None:
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(src), "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(dest)],
+        capture_output=True,
+    )
+    raw = dest.read_bytes() if dest.is_file() and dest.stat().st_size > 64 else None
+    return raw
+
+
+def _wav_peak(data: bytes | None) -> float:
+    if not data:
+        return 0.0
+    try:
+        samples, _rate = wav_pcm(data)
+    except Exception:
+        return 0.0
+    if not samples:
+        return 0.0
+    return max(abs(s) for s in samples) / 32768.0
+
+
 def split_take(data: bytes, audio_side: bytes | None = None) -> tuple[bytes | None, bytes | None, str | None, str | None]:
     td = tempfile.mkdtemp(prefix="umbra-take-")
     src = Path(td) / f"take{_suffix(data)}"
@@ -111,20 +124,17 @@ def split_take(data: bytes, audio_side: bytes | None = None) -> tuple[bytes | No
         ["ffmpeg", "-y", "-i", str(src), "-frames:v", "1", "-q:v", "2", str(jpg)],
         capture_output=True,
     )
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", str(src), "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(wav)],
-        capture_output=True,
-    )
     frame = jpg.read_bytes() if jpg.is_file() and jpg.stat().st_size > 32 else None
-    audio = wav.read_bytes() if wav.is_file() and wav.stat().st_size > 64 else None
-    if audio is None and audio_side:
-        side = Path(td) / f"mic{_suffix(audio_side)}"
-        side.write_bytes(audio_side)
-        subprocess.run(
-            ["ffmpeg", "-y", "-i", str(side), "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(wav)],
-            capture_output=True,
-        )
-        audio = wav.read_bytes() if wav.is_file() and wav.stat().st_size > 64 else None
+    mux = _to_wav(src, wav)
+    side = None
+    if audio_side:
+        mic = Path(td) / f"mic{_suffix(audio_side)}"
+        mic.write_bytes(audio_side)
+        side = _to_wav(mic, Path(td) / "mic.wav")
+    # Video often muxes a silent/empty opus track; the sidecar is the real mic.
+    audio = side if _wav_peak(side) >= _wav_peak(mux) and side is not None else mux
+    if audio and audio is side:
+        wav.write_bytes(audio)
     return frame, audio, str(wav) if audio else None, str(src)
 
 
@@ -190,7 +200,7 @@ def _one_face(ctx, evk, tmpl, probe_ct):
 def _hand_on_face(face: dict, hands: list) -> bool:
     fx, fy = float(face["x"]), float(face["y"])
     fw, fh = float(face["w"]), float(face["h"])
-    pad = 0.16
+    pad = 0.32
     for h in hands:
         cx, cy = float(h.get("cx", -1)), float(h.get("cy", -1))
         if fx - pad <= cx <= fx + fw + pad and fy - pad <= cy <= fy + fh + pad:
@@ -314,6 +324,7 @@ def run(take: bytes, card: dict | None = None, person_id: str = "", audio_side: 
         jobs.setdefault(name, _lane(name, False, err="skipped", ms=0))
     lights = [1 if jobs[n]["ok"] else 0 for n in LANES]
     total_ms = int((time.perf_counter() - t0) * 1000)
+    audio_info = qa_voice(audio) if audio else {"ok": False, "reason": "no audio"}
     return {
         "id": person_id,
         "ok": bool(jobs["face"]["ok"]),
@@ -323,6 +334,7 @@ def run(take: bytes, card: dict | None = None, person_id: str = "", audio_side: 
         "ms": {n: jobs[n].get("ms", 0) for n in LANES} | {"total": total_ms},
         "thresh": {"face": FACE_L2_MAX, "voice": VOICE_L2_MAX},
         "profile": {"faces": len(faces), "voices": len(voices)},
+        "audio": audio_info,
     }
 
 

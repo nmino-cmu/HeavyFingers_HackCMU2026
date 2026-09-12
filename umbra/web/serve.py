@@ -105,10 +105,15 @@ class H(BaseHTTPRequestHandler):
             self._send(200, (WEB / "umbra.js").read_bytes(), "text/javascript; charset=utf-8")
             return
         if path == "/last":
-            if LAST.is_file():
-                self._send(200, LAST.read_bytes())
-            else:
-                self._send(200, b"{}")
+            from umbra.privacy import public_hop
+
+            raw = json.loads(LAST.read_text()) if LAST.is_file() else {}
+            self._send(200, json.dumps(public_hop(raw)).encode())
+            return
+        if path == "/cutout":
+            from umbra.privacy import FACTS
+
+            self._send(200, json.dumps(FACTS).encode())
             return
         if path == "/roster":
             from umbra.enroll import default_roster
@@ -116,6 +121,8 @@ class H(BaseHTTPRequestHandler):
             self._send(200, json.dumps({"people": default_roster().summary()}).encode())
             return
         if path == "/escrows":
+            from umbra.privacy import public_escrow, public_hop
+
             escrow_dir = ROOT / "umbra/fixtures/escrows"
             rows = []
             if escrow_dir.is_dir():
@@ -123,36 +130,19 @@ class H(BaseHTTPRequestHandler):
                     if p.name.endswith(".keypair.json"):
                         continue
                     rec = json.loads(p.read_text())
-                    rows.append(
-                        {
-                            k: rec.get(k)
-                            for k in (
-                                "id",
-                                "status",
-                                "amount_sol",
-                                "payer",
-                                "payee",
-                                "escrow_address",
-                                "deposit_explorer",
-                                "settle_explorer",
-                            )
-                        }
-                    )
+                    rows.append(public_escrow(rec))
             last = json.loads(LAST.read_text()) if LAST.is_file() else {}
-            self._send(200, json.dumps({"escrows": rows, "last_hop": last}).encode())
+            self._send(200, json.dumps({"escrows": rows, "last_hop": public_hop(last)}).encode())
             return
         if path == "/receipts":
+            from umbra.privacy import public_receipt
+
             receipt_dir = ROOT / "umbra/fixtures/receipts"
             rows = []
             if receipt_dir.is_dir():
                 for p in sorted(receipt_dir.glob("*.json")):
                     rec = json.loads(p.read_text())
-                    rows.append(
-                        {
-                            k: rec.get(k)
-                            for k in ("mint", "ata", "recipient", "auction_id", "signature", "explorer", "key_scheme")
-                        }
-                    )
+                    rows.append(public_receipt(rec))
             self._send(200, json.dumps({"receipts": rows}).encode())
             return
         self._send(404, b"no")
@@ -249,7 +239,9 @@ class H(BaseHTTPRequestHandler):
             if hop is None:
                 self._send(400, b"no pass")
                 return
-            self._send(200, json.dumps({k: hop[k] for k in ("sigs", "addrs", "explorers")}).encode())
+            from umbra.privacy import public_hop
+
+            self._send(200, json.dumps(public_hop(hop)).encode())
             return
         self._send(404, b"no")
 

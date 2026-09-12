@@ -74,23 +74,46 @@ def test_split_take():
     frame3, audio3, wav3, _src3 = split_take(open(silent, "rb").read(), open(wav_in, "rb").read())
     check(frame3 and audio3 and audio3[:4] == b"RIFF", "sidecar mic becomes wav")
     check(wav3 and os.path.isfile(wav3), wav3)
+    quiet = os.path.join(td, "quiet.mp4")
+    loud = os.path.join(td, "loud.wav")
+    subprocess.check_call(
+        [
+            "ffmpeg", "-y",
+            "-f", "lavfi", "-i", "color=c=gray:s=320x240:d=2",
+            "-f", "lavfi", "-i", "aevalsrc=0:d=2",
+            "-shortest", "-pix_fmt", "yuv420p", quiet,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.check_call(
+        ["ffmpeg", "-y", "-f", "lavfi", "-i", "sine=f=440:d=2", "-ac", "1", "-ar", "16000", loud],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    _f4, audio4, _w4, _s4 = split_take(open(quiet, "rb").read(), open(loud, "rb").read())
+    from umbra.enroll_extract import wav_pcm
+
+    samples, rate = wav_pcm(audio4)
+    peak = max(abs(s) for s in samples) / 32768.0
+    check(peak > 0.1, f"quiet mux must not beat loud sidecar peak={peak}")
 
 
 def test_wave_from_l2s():
     from umbra.verify import wave_from_l2s
 
     check(not wave_from_l2s([20, 20, 20]), "photo / no wave")
-    check(not wave_from_l2s([20, 300, 300]), "filter drop — never you again")
+    check(wave_from_l2s([20, 300, 300]), "you then cover")
     check(not wave_from_l2s([300, 300, 300]), "never you")
     check(wave_from_l2s([20, 300, 25]), "you — occlude — you")
     check(wave_from_l2s([15, 18, 400, 999, 22]), "multi-frame wave")
     check(not wave_from_l2s([]), "empty")
-    check(not wave_from_l2s([343, 343, 120, 118, 110, 122]), "start miss then you — no wave")
+    check(wave_from_l2s([343, 343, 120, 118, 110, 122]), "cover first then you")
     from umbra.verify import _hand_on_face
 
     face = {"x": 0.3, "y": 0.2, "w": 0.3, "h": 0.4}
     check(_hand_on_face(face, [{"cx": 0.18, "cy": 0.4}]), "hand just outside the face box is a wave")
-    check(not _hand_on_face(face, [{"cx": 0.02, "cy": 0.9}]), "hand in the corner is not a wave")
+    check(not _hand_on_face(face, [{"cx": 0.0, "cy": 0.99}]), "hand in the corner is not a wave")
     src = open(os.path.join(ROOT, "umbra/verify.py"), encoding="utf-8").read()
     check("grid_for_enroll" in src, "verify uses the enroll crop")
     check("len(good) >= 1" in src, "one matching frame is enough")
@@ -183,11 +206,20 @@ def test_vultr_face_uses_profile():
     print("VULTR_FACE_L2", l2, "profile", pid)
 
 
+def test_voice_thresh_rejects_other_talker():
+    # 490603 face-pass take L2 0.053; last take (other talker, face 377) L2 0.093.
+    from umbra.verify import VOICE_L2_MAX
+
+    check(0.053 < VOICE_L2_MAX, VOICE_L2_MAX)
+    check(VOICE_L2_MAX < 0.093, VOICE_L2_MAX)
+
+
 def main():
     test_load_live()
     test_split_take()
     test_wave_from_l2s()
     test_take_frames_dense()
+    test_voice_thresh_rejects_other_talker()
     test_vultr_face_uses_profile()
     print(f"CHECKS_RUN={CHECKS_RUN}")
 

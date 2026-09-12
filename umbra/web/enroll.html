@@ -5,7 +5,7 @@
   <title>Umbra — enroll</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=all1">
+  <link rel="stylesheet" href="/style.css?v=all4">
 </head>
 <body class="desktop face-page" data-bg="face">
 <div data-umbra-bg></div>
@@ -33,6 +33,7 @@
         <label class="file" id="voiceFileLab" hidden for="voiceFile">Choose voice file</label>
         <button type="button" id="doEnroll" hidden>Save encrypted</button>
         <button type="button" id="clearCat" hidden>Clear category</button>
+        <button type="button" id="enter" hidden>Enter</button>
       </div>
     </div>
     <input type="file" id="voiceFile" accept="audio/*,.wav,.m4a,.mp3,.aac,.caf" hidden>
@@ -52,12 +53,18 @@
     <div class="face-meta">
       <p class="muted" id="enrollCounts"></p>
       <p class="muted" id="rosterLine">Roster: none yet</p>
+      <div class="lights" id="lights"></div>
       <p id="err"></p>
+      <div class="seal-viz" id="seal" aria-hidden="true">
+        <p class="seal-kicker">Encrypting · key stays here</p>
+        <div class="ut-cipher" id="sealCipher"></div>
+        <div class="ut-wave" id="sealWave"></div>
+      </div>
     </div>
     <div class="win-resize" aria-hidden="true"></div>
   </article>
 </div>
-<script src="/umbra.js?v=all1"></script>
+<script src="/umbra.js?v=all4"></script>
 <script src="/vendor/grain.js"></script>
 <script src="/windows.js?v=wire5"></script>
 <script>
@@ -143,11 +150,14 @@ function render() {
   hide(document.getElementById("voiceFileLab"), true);
   hide(document.getElementById("doEnroll"), true);
   hide(document.getElementById("clearCat"), true);
+  hide(document.getElementById("enter"), step !== "done");
   hide(script, true);
   hide(document.getElementById("voiceDone"), true);
   hide(document.getElementById("voicePlay"), true);
   if (voiceUI !== "rec") hide(recDeck, true);
   document.getElementById("stage").classList.toggle("short", step === "voice");
+  document.getElementById("stage").classList.toggle("rest",
+    (step === "face" && bag.face.length > 0) || (step === "voice" && voiceUI === "done"));
   if (step === "start") {
     hide(document.getElementById("pid"), false);
     hide(document.getElementById("begin"), false);
@@ -301,6 +311,7 @@ async function tickQa() {
 }
 
 async function snap(kind) {
+  document.getElementById("stage").classList.remove("rest");
   const v = document.getElementById("camPreview");
   if (!v.srcObject) throw new Error("camera is not on");
   const blob = await Umbra.grabFrame(v);
@@ -447,11 +458,20 @@ async function saveEncrypted() {
   bag.voice.forEach((b, i) => fd.append("voice", b, `voice${i}.wav`));
   const pidEl = document.getElementById("pid");
   if (pidEl && pidEl.value.trim()) fd.append("id", pidEl.value.trim());
-  const out = await Umbra.enroll(fd);
-  enrolledId = out.id;
-  Umbra.session.set({ id: out.id, at: Date.now() });
-  stopCam();
-  location.assign("/?enrolled=" + encodeURIComponent(out.id));
+  const btn = document.getElementById("doEnroll");
+  document.getElementById("enrollHint").textContent = "Encrypting on this machine. Key stays here.";
+  btn.disabled = true;
+  Umbra.sealViz(document.getElementById("seal"), true, 1000);
+  try {
+    const out = await Umbra.enroll(fd);
+    enrolledId = out.id;
+    Umbra.session.set({ id: out.id, at: Date.now() });
+    stopCam();
+    step = "done";
+    render();
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 document.getElementById("begin").onclick = () => openCam().then(() => { step = "face"; render(); }).catch(showErr);
@@ -479,6 +499,10 @@ document.getElementById("voiceFile").onchange = (ev) => {
 };
 document.getElementById("clearCat").onclick = () => clearCategory();
 document.getElementById("doEnroll").onclick = () => saveEncrypted().catch(showErr);
+document.getElementById("enter").onclick = () => {
+  if (!enrolledId) return;
+  location.assign("/?enrolled=" + encodeURIComponent(enrolledId));
+};
 rosterLine();
 render();
 setInterval(tickQa, 400);

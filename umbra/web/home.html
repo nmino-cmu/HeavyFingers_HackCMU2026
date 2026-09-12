@@ -5,7 +5,7 @@
   <title>Umbra — desk</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=desk7">
+  <link rel="stylesheet" href="/style.css?v=desk8">
 </head>
 <body class="desktop" data-bg="subtle">
 <div data-umbra-bg></div>
@@ -32,21 +32,26 @@
           <button type="button" data-win-close aria-label="Close">X</button>
         </div>
       </div>
-      <div class="win-body" style="padding:0;">
-        <div class="msg-list">
+      <div class="win-body" style="padding:0;display:flex;flex-direction:column;">
+        <div class="msg-list" style="flex:1;">
           <div class="msg-col" id="msgList">
-            <div class="msg-row"><div class="msg-handle">nym-7f3a</div><div class="msg-meta">sealed · 2h ago</div></div>
-            <div class="msg-row"><div class="msg-handle">veil.k9</div><div class="msg-meta">sealed · 5h ago</div></div>
-            <div class="msg-row"><div class="msg-handle">0xorbit</div><div class="msg-meta">sealed · yesterday</div></div>
-            <div class="msg-row"><div class="msg-handle">ghost-lattice</div><div class="msg-meta">sealed · yesterday</div></div>
-            <div class="msg-row"><div class="msg-handle">silent.petal</div><div class="msg-meta">sealed · 2d ago</div></div>
-            <div class="msg-row"><div class="msg-handle">hop-anon-14</div><div class="msg-meta">sealed · 3d ago</div></div>
-            <div class="msg-row"><div class="msg-handle">mask.delta</div><div class="msg-meta">sealed · 4d ago</div></div>
-            <div class="msg-row"><div class="msg-handle">cipher_2048</div><div class="msg-meta">sealed · 1w ago</div></div>
-            <div class="msg-row"><div class="msg-handle">void.relay</div><div class="msg-meta">sealed · 1w ago</div></div>
-            <div class="msg-row"><div class="msg-handle">umbra-qx</div><div class="msg-meta">sealed · 12d ago</div></div>
+            <div class="msg-row"><div class="msg-handle">nym-7f3a</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">veil.k9</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">0xorbit</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">ghost-lattice</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">silent.petal</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">hop-anon-14</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">mask.delta</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">cipher_2048</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">void.relay</div><div class="msg-meta">relay · local only</div></div>
+            <div class="msg-row"><div class="msg-handle">umbra-qx</div><div class="msg-meta">relay · local only</div></div>
           </div>
         </div>
+        <form class="msg-compose" id="sealForm">
+          <input id="sealHandle" maxlength="32" placeholder="nym" autocomplete="off">
+          <input id="sealText" maxlength="280" placeholder="seal on this laptop" autocomplete="off">
+          <button type="submit">Seal</button>
+        </form>
       </div>
       <div class="win-resize" aria-hidden="true"></div>
     </article>
@@ -60,6 +65,7 @@
         </div>
       </div>
       <div class="win-body">
+        <p class="privacy-hud" id="cutoutHud"><b>cutout</b> · no memo · no roster on chain · FHE prices · AES-GCM receipts · inbox never uploaded</p>
         <h3 class="desk-h">Current auctions</h3>
         <p class="desk-empty">None open.</p>
         <h3 class="desk-h">Receipt NFTs</h3>
@@ -71,7 +77,7 @@
         </div>
         <div class="auc-row">
           <h4>Lot 12 — night relay</h4>
-          <p>Closed. Two bids, both ciphertext. Settled locally.</p>
+          <p>Closed. Two bids, both sealed. Settled locally.</p>
         </div>
         <div class="auc-row">
           <h4>Lot 08 — unused path</h4>
@@ -118,7 +124,7 @@
           </div>
           <div class="mkt-item">
             <h4>Night-only relay</h4>
-            <p>Windowed ciphertext drop. Worker sees bits, not a face.</p>
+            <p>Windowed sealed drop. Worker sees bits, not a face.</p>
           </div>
           <div class="mkt-item">
             <h4>Unused veil</h4>
@@ -138,31 +144,51 @@
     </article>
   </div>
 </div>
-<script src="/umbra.js"></script>
+<script src="/umbra.js?v=veil1"></script>
 <script src="/vendor/grain.js"></script>
 <script src="/windows.js?v=wire5"></script>
 <script>
 document.querySelector('a[href="/"]').addEventListener("click", () => Umbra.session.clear());
 
+function esc(s) {
+  return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+async function paintInbox() {
+  const host = document.getElementById("msgList");
+  const rows = Umbra.inbox.load();
+  host.querySelectorAll("[data-seal]").forEach((n) => n.remove());
+  for (const row of rows) {
+    let body = "sealed";
+    try { body = await Umbra.inbox.open(row); } catch (e) { body = "unreadable on this machine"; }
+    const d = document.createElement("div");
+    d.className = "msg-row";
+    d.dataset.seal = "1";
+    d.innerHTML = "<div class=\"msg-handle\">" + esc(row.handle) + "</div><div class=\"msg-meta\">local AES-GCM · " + esc(body) + "</div>";
+    host.insertBefore(d, host.firstChild);
+  }
+}
+
 async function boot() {
-  const sess = Umbra.session.get() || {};
-  let people = [];
+  document.getElementById("who").textContent = await Umbra.veil();
   try {
-    const rost = await Umbra.roster();
-    people = rost.people || [];
+    const facts = await Umbra.cutout();
+    const hud = document.getElementById("cutoutHud");
+    if (hud && facts && facts.view) {
+      hud.innerHTML = "<b>" + esc(facts.view) + "</b> · memo " + (facts.memo ? "yes" : "no") +
+        " · roster " + (facts.roster_on_chain ? "on-chain" : "off-chain") +
+        " · prices " + esc(facts.prices) + " · receipts " + esc(facts.receipts);
+    }
   } catch (e) {}
-  const id = sess.id || (people[people.length - 1] && people[people.length - 1].id) || "";
-  document.getElementById("who").textContent = id || "guest";
   try {
     const pack = await Umbra.escrows();
     const hop = pack.last_hop || {};
     const hopEl = document.getElementById("lastHop");
     const explorers = hop.explorers || [];
-    hopEl.textContent = explorers.length
-      ? "Last hop · " + (hop.addrs && hop.addrs.ingress ? hop.addrs.ingress : explorers.length + " txs")
-      : "No hop yet.";
+    hopEl.textContent = explorers.length ? "Last hop · " + explorers.length + " txs" : "No hop yet.";
     if (explorers[0]) {
-      hopEl.innerHTML = 'Last hop · <a href="' + explorers[0] + '" target="_blank" rel="noreferrer">explorer</a>';
+      hopEl.innerHTML = 'Last hop · <a href="' + esc(explorers[0]) + '" target="_blank" rel="noreferrer">explorer</a>' +
+        (hop.hops ? " · " + hop.hops + "-hop cutout" : "");
     }
     const box = document.getElementById("escrowList");
     box.innerHTML = "";
@@ -170,10 +196,10 @@ async function boot() {
       const d = document.createElement("div");
       d.className = "auc-row";
       d.innerHTML =
-        "<h4>" + (e.id || "?") + " · " + (e.status || "?") + "</h4>" +
-        "<p>" + (e.amount_sol != null ? e.amount_sol + " SOL" : "") +
-        (e.deposit_explorer ? ' · <a href="' + e.deposit_explorer + '" target="_blank" rel="noreferrer">deposit</a>' : "") +
-        (e.settle_explorer ? ' · <a href="' + e.settle_explorer + '" target="_blank" rel="noreferrer">settle</a>' : "") +
+        "<h4>" + esc(e.nym || "cutout") + " · " + esc(e.status || "?") + "</h4>" +
+        "<p>" +
+        (e.deposit_explorer ? '<a href="' + esc(e.deposit_explorer) + '" target="_blank" rel="noreferrer">deposit</a>' : "") +
+        (e.settle_explorer ? ' · <a href="' + esc(e.settle_explorer) + '" target="_blank" rel="noreferrer">settle</a>' : "") +
         "</p>";
       box.appendChild(d);
     });
@@ -186,12 +212,9 @@ async function boot() {
     (recs.receipts || []).forEach((r) => {
       const d = document.createElement("div");
       d.className = "auc-row";
-      const mint = (r.mint || "").slice(0, 8);
       d.innerHTML =
-        "<h4>" + (r.auction_id || "receipt") + " · " + mint + "…</h4>" +
-        "<p>" + (r.recipient ? r.recipient.slice(0, 8) + "…" : "") +
-        (r.explorer ? ' · <a href="' + r.explorer + '" target="_blank" rel="noreferrer">explorer</a>' : "") +
-        "</p>";
+        "<h4>" + esc(r.lot || "lot") + " · " + esc(r.tag || "tag") + "</h4>" +
+        "<p>" + (r.explorer ? '<a href="' + esc(r.explorer) + '" target="_blank" rel="noreferrer">explorer</a>' : "") + "</p>";
       rbox.appendChild(d);
     });
     if (!(recs.receipts || []).length) {
@@ -200,7 +223,18 @@ async function boot() {
   } catch (e) {
     document.getElementById("lastHop").textContent = String(e && e.message ? e.message : e);
   }
+  await paintInbox();
 }
+
+document.getElementById("sealForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const handle = document.getElementById("sealHandle").value.trim() || "nym";
+  const text = document.getElementById("sealText").value.trim();
+  if (!text) return;
+  await Umbra.inbox.seal(handle, text);
+  document.getElementById("sealText").value = "";
+  await paintInbox();
+});
 
 boot().catch((e) => { console.error(e); });
 </script>

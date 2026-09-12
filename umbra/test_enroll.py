@@ -340,6 +340,21 @@ def test_pages_split():
     check("face-view" in enroll and 'id="stage"' in enroll, "enroll camera is the face window")
     check(enroll.find('id="script"') < enroll.find('id="recdeck"'), "passage then rec deck")
     check('classlist.toggle("short", step === "voice")' in enroll, "small camera while reading")
+    check('classlist.toggle("rest"' in enroll, "enroll preview rests after stills")
+    check('classlist.toggle("rest"' in do, "signin preview rests after take")
+    check("sealviz" in enroll and "sealviz" in do, "encrypt bar on enroll/signin")
+    save = enroll[enroll.find("async function saveencrypted"):]
+    check(0 <= save.find("sealviz(") < save.find("umbra.enroll"), "enroll seal then encrypt")
+    check("paintlanes" not in save, "enroll encrypt is not the fhe bars")
+    check('id="enter"' in enroll and "enrolled=" in enroll, "enroll enter after save")
+    send = do[do.find('getelementbyid("send").onclick'):]
+    check(0 <= send.find("sealviz(") < send.find("umbra.verify"), "seal before verify")
+    check("1000" in send[send.find("sealviz("):send.find("umbra.verify")], "signin seal 1s")
+    check("startfhe" in send and "heldout" in send, "fhe starts after encrypt flourish")
+    fhe = do[do.find("function startfhe"):do.find("function startfhe") + 400]
+    check('paintlights("run")' in fhe and "phase !== \"encrypt\"" in fhe, "fhe bars only after encrypt")
+    check('id="enter"' in do and 'location.assign("/home")' in do, "enter to desk")
+    check("settimeout(() => location.assign(\"/home\")" not in do, "no auto enter")
     camfn = enroll[enroll.find("async function opencam"):enroll.find("async function tickqa")]
     gum = camfn.find("getusermedia({")
     check(gum >= 0 and "audio: true" in camfn[gum:gum + 140], "begin asks for mic")
@@ -385,6 +400,8 @@ def test_pages_split():
     css = open(os.path.join(ROOT, "umbra/web/style.css"), encoding="utf-8").read().lower()
     check("#guide.ok .oval" in css and "var(--ok)" in css, "green oval rule in shared css")
     check("#stage.short" in css or ".face-view.short" in css, "reading camera can shrink")
+    check(".face-view.rest" in css and ".seal-viz" in css, "rest preview + encrypt strip")
+    check(".lane-track" in css, "estimated fhe bars")
     check('id="stage"' in do and "face-view" in do, "signin camera is the face window")
     check("[hidden] { display: none !important; }" in css, "hidden rows/oval must actually hide (display:flex beats ua hidden)")
 

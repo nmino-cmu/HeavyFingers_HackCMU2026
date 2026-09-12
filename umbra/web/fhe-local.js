@@ -9,7 +9,7 @@ const FACE_N = 64;
 const FACE_L2_MAX = 220;
 const VOICE_L2_MAX = 0.2;
 const VOICE_MIN_S = 12;
-const DB = "umbra-local-v2";
+const DB = "umbra-local-v3";
 const WORDS = (
   "the lazy dog fox am is hack win project asterisk " +
   "quick brown jumps over cmu lattice cipher nonce"
@@ -97,6 +97,7 @@ function idbPut(row) {
 export async function boot() {
   if (ready) return ready;
   ready = (async () => {
+    try { indexedDB.deleteDatabase("umbra-local-v2"); } catch (e) {}
     seal = await SEAL();
     ZSTD = seal.ComprModeType.zstd;
     return seal;

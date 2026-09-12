@@ -24,10 +24,11 @@ docker run -d --name umbra-choreo --restart unless-stopped --network host \\
   -e PYTHONPATH=/opt/umbra-src \\
   -e UMBRA_FHE_ARTIFACTS=/opt/umbra/artifacts \\
   -e UMBRA_FHE_VPC_IP=\${UMBRA_FHE_VPC_IP:-10.20.0.5} \\
+  -e UMBRA_FHE_PORT=8086 \\
   python:3.11-slim-bookworm \\
   bash -c "apt-get update -qq && apt-get install -y -qq binutils gcc >/dev/null && pip install --no-cache-dir 'concrete-ml==1.7.0' numpy && exec python3 /opt/umbra-src/umbra/worker/choreo_server.py"
 sleep 2
 docker ps --filter name=umbra-choreo --format '{{.Names}} {{.Status}}'
-ss -ltnp | grep 8081 || true
+ss -ltnp | grep 8086 || true
 EOF
 echo "choreo deploy started (pip may still be running)"

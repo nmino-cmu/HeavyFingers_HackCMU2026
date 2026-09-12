@@ -120,6 +120,6 @@ Replace the “1 GB smoke” paragraph with the new plan, IPs, and `free -m` pas
 
 Must include: instance list, `free -m` on worker, ufw status both, VPC ping, `UMBRA_WORKER_URL`.
 
-- [ ] **Step 2: Fresh composer-2.5** reads only RULES + this plan + P0-DONE + GATHERED. Last line `VERDICT: PASS` only if worker RAM ≥ 16 GB and orch ≠ worker.
+- [ ] **Step 2: Fresh cursor-grok-4.6-xhigh-fast** reads only RULES + this plan + P0-DONE + GATHERED. Last line `VERDICT: PASS` only if worker RAM ≥ 16 GB and orch ≠ worker.
 
 Do not start P1 in this Goal.

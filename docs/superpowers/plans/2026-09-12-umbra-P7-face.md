@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-Obey RULES. Requires **P4-DONE** + 16 GB worker. Try CryptoFace/SEAL **and** one other stack (or a second build). If both fail → `LOCAL_FHE` / `LOCAL_CLEAR` on the Mac (aligned 64×64). **No** plaintext ArcFace on the worker. Label `EVAL_HOST` honestly.
+Obey RULES. **Builder:** Grok 4.6 xhigh FAST (`cursor-grok-4.6-xhigh-fast`, empty history). Fable 5.1 only if compile is stuck. Requires **P4-DONE** + 16 GB worker. Try CryptoFace/SEAL **and** one other stack (or a second build). If both fail → `LOCAL_FHE` / `LOCAL_CLEAR` on the Mac (aligned 64×64). **No** plaintext ArcFace on the worker. Label `EVAL_HOST` honestly.
 
 **Orch:** add `POST /face` → `$UMBRA_FHE_VPC_IP:8084`. Redeploy orch. UFW. Bind `$UMBRA_FHE_VPC_IP` only.
 
@@ -21,4 +21,4 @@ Obey RULES. Requires **P4-DONE** + 16 GB worker. Try CryptoFace/SEAL **and** one
 **Files:** `umbra/test_face.py`, `umbra/worker/face_server.py`, `umbra/deploy/Dockerfile.face`
 
 - [ ] Two-key; face_B → 0; plaintext 64×64 POST → 4xx; `len(r.content)>=1_000_000` if CKKS ships; `eval_host_machine_id` == worker `/etc/machine-id`.
-- [ ] Fable 5.1 Task. Tests + XOR. `umbra/phases/P7-DONE.md`.
+- [ ] `cursor-grok-4.6-xhigh-fast` Task. Fable 5.1 only if stuck. Tests + XOR. `umbra/phases/P7-DONE.md`.

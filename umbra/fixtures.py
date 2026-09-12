@@ -13,8 +13,22 @@ V_OK += [0.7319, 1.0, 0.0, 0.0, 1.0, 1.0, 0.6127, 1.0]
 assert len(V_OK) == 75
 
 CARD_RRP = {"hand": "right", "side": "right", "end": "pinky"}
+CARD_LRP = {"hand": "left", "side": "right", "end": "pinky"}
+CARD_RLP = {"hand": "right", "side": "left", "end": "pinky"}
+CARD_RRI = {"hand": "right", "side": "right", "end": "index"}
 IDX = {"S5": 0, "S6": 1, "S7": 2, "S8": 3, "S9": 4, "S10": 5, "S11": 6, "S12": 7, "S13": 8, "S14": 9}
 REF_OK = [1] * 10
+
+
+def encode_card(card):
+    """Public circuit inputs (5 floats). One-hot end digit."""
+    return [
+        1.0 if card.get("hand") == "right" else 0.0,
+        1.0 if card.get("side") == "right" else 0.0,
+        1.0 if card.get("end") == "pinky" else 0.0,
+        1.0 if card.get("end") == "index" else 0.0,
+        1.0 if card.get("end") == "thumb" else 0.0,
+    ]
 
 
 def _clone():

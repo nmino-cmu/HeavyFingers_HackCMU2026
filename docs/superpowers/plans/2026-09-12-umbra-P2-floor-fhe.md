@@ -28,11 +28,11 @@ Obey RULES. Requires P0 + P1 DONE. Worker RAM ≥ 16 GB. No Solana. `RESULT` + `
 - [ ] **Step 1: Write tests** — two-key, evk-mismatch, freshness, `len(ct)>=100_000`, 256 body flips (no “or errors”), plaintext POST 4xx, nonce, `ssh docker logs`, host-gate. First line `if not __debug__: sys.exit("refusing -O")`. `test_sk_absent.py`: no `client.zip` / `*.sk` on the worker (`ssh find`, fail if SSH fails). If `EVAL_HOST=mac`, skip two-key-against-Vultr but still fail a worker that holds `sk`.
 - [ ] **Step 2: `cheat_worker.py`** = `np.frombuffer` + `reference()` + bit bytes. `test_harness_negative.py` must `raise` against it.
 - [ ] **Step 3: Run tests** — FAIL (no circuit).
-- [ ] **Step 4: composer-2.5 test audit.**
+- [ ] **Step 4: cursor-grok-4.6-xhigh-fast test audit.**
 
 ---
 
-### Task 2: Compile + deploy (new Fable 5.1 Task, empty history)
+### Task 2: Compile + deploy (new Grok 4.6 xhigh FAST Task, empty history)
 
 **Files:**
 - Create: `umbra/circuits/choreo_floor.py` — the numpy function the compiler sees
@@ -44,7 +44,7 @@ Obey RULES. Requires P0 + P1 DONE. Worker RAM ≥ 16 GB. No Solana. `RESULT` + `
 - `POST /eval` body = ciphertext bytes + evk (multipart or two blobs). No JSON floats.
 - Worker bind `$UMBRA_FHE_VPC_IP:8081`.
 
-- [ ] **Step 1: Concrete on the worker** — new Fable 5.1 Task, this plan + RULES only. If it fails, LEDGER `cmd`/`stderr`, then **OpenFHE** (second Task). If both fail on ≥16 GB, `LOCAL_FHE` then `LOCAL_CLEAR` on the Mac (RULES). Never plaintext on the worker.
+- [ ] **Step 1: Concrete on the worker** — new `cursor-grok-4.6-xhigh-fast` Task, this plan + RULES only. Fable 5.1 only if compile is stuck. If it fails, LEDGER `cmd`/`stderr`, then **OpenFHE** (second Task). If both fail on ≥16 GB, `LOCAL_FHE` then `LOCAL_CLEAR` on the Mac (RULES). Never plaintext on the worker.
 - [ ] **Step 2: Deploy** replace stub. `ss` listen address is `$UMBRA_FHE_VPC_IP:8081`, not `0.0.0.0:8081`. Re-apply UFW.
 - [ ] **Step 3:**
 
@@ -59,6 +59,6 @@ python3 umbra/test_vpc.py
 Expected: exit 0. Floor `CHECKS_RUN>=20` if `EVAL_HOST=vultr`. Two-key/evk/freshness required for `VULTR_*` only.
 
 - [ ] **Step 4: Codex Sol XOR** on `umbra/worker/**` and `umbra/deploy/**`.
-- [ ] **Step 5: Fresh composer-2.5 re-runs the commands.** `P2-DONE.md` lists `STACKS_TRIED` and `EVAL_HOST` per bit. No wallets.
+- [ ] **Step 5: Fresh cursor-grok-4.6-xhigh-fast re-runs the commands.** `P2-DONE.md` lists `STACKS_TRIED` and `EVAL_HOST` per bit. No wallets.
 
 This is the Vultr prize floor. Do not start P3 in this Goal.

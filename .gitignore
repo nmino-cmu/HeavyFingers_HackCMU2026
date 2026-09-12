@@ -1,3 +1,4 @@
+.worktrees/
 umbra/.env
 **/.env
 *.pem

@@ -8,9 +8,9 @@ Stop only at `umbra/phases/P<N>-DONE.md`, `umbra/BLOCKED.md`, `umbra/STOPPED.md`
 
 **Unbreakable hard stop:** run `python3 umbra/hard_stop.py` before any work. Exit 99 = halt. Fires at **2026-09-12 15:30 America/New_York** or if `umbra/HARD_STOP` exists. After that, no more Tasks, no “one more compile.”
 
-**Builder is `composer-2.5`**, never `*-fast`. **Not** a Fable one-shot. Spawn Fable 5.1 only if lattice compile is stuck (one Task + one retry), then next stack or `LOCAL_*`.
+**Builder is Grok 4.6 xhigh FAST** (`cursor-grok-4.6-xhigh-fast`) (human 2026-09-12 07:18 ET). **Not** Composer 2.5. **Not** a Fable one-shot. Spawn Fable 5.1 only if lattice compile is stuck (one Task + one retry), then next stack or `LOCAL_*`.
 
-**Now:** verification (same person, live challenge). **Wallets (P9) are last.** Do not start P8 or P9 until P4 is green.
+**Now:** verification (same person, live challenge). **Wallets (P9) are last.** Do not start P9 until P4 is green. **P3–P8 may run in parallel** (human 2026-09-12 07:26 ET): one Grok 4.6 xhigh FAST Task per phase, separate worktree, separate Vultr farm VM. Do not edit `umbra/orch/app.py` in a farm Task — orchestrator merges routes. Live `umbra-choreo` stays up.
 
 ## Topology (keep two VMs)
 
@@ -22,6 +22,8 @@ Stop only at `umbra/phases/P<N>-DONE.md`, `umbra/BLOCKED.md`, `umbra/STOPPED.md`
 VPC `ba995955-e979-4a6e-bc06-76a100949f34` `10.20.0.0/24` ewr. `UMBRA_WORKER_URL=http://207.246.126.149:8080`. After P0 upgrade, **re-read GATHERED** — VPC IPs may change. Never hardcode `10.20.0.4` in tests; use `$UMBRA_FHE_VPC_IP`.
 
 Do not merge onto one VM.
+
+**Faster VMs (human 2026-09-12 07:22–07:24 ET):** extra / larger / **faster** Vultr instances are allowed for **compile, test, eval, and the demo** — not compile-only. Floor is **≥16 GB** for FHE. A **~32–64 GB** / ~60 GB / higher-CPU box is fine so `htop` and evals look like real work. Do **not** go way overboard (no 96 GB+ / bare metal unless a ~60 GB box already OOM'd). Same VPC. Orch may stay 1 GB or move to a snappier public box. Farm VMs: copy `server.zip` off, destroy or keep as the **demo worker**. **Do not** compile on live `umbra-choreo` / `:8086` in parallel with another deploy. **Do not** cut over the public `/eval` path until XOR + two-key + `test_sk_absent` pass on the new host. No `sk` / `client.zip` on any VM.
 
 ## Orch routes (extend, do not replace)
 
@@ -38,7 +40,7 @@ One public listener. Later phases **edit** `umbra/orch/app.py` and redeploy orch
 
 ## XOR
 
-Circuit can decide it → try **FHE on umbra-worker** first. Client encrypts. Worker never decrypts. Client decrypts bits. Whisper / raw mp4 / wav / Secure Enclave / spend keys → Mac. **Never** a plaintext classifier on either VM. Crops stay local.
+Circuit can decide it → prove it once on the **Mac** (FHE probe), then run it on **Vultr** (live worker or a compile-farm VM). Client encrypts. Worker never decrypts. Client decrypts bits. If it **cannot** land on Vultr → **Mac `LOCAL_CLEAR`**. Whisper / raw mp4 / wav / Secure Enclave / spend keys → Mac. **Never** a plaintext classifier on either VM. Crops stay local.
 
 ## Multiple FHE stacks (required)
 
@@ -60,25 +62,26 @@ ROW S5 STACKS_TRIED=concrete,openfhe RESULT=VULTR_CONCRETE
 
 A phase that only ever launches one stack and then omits is **illegal**.
 
-## Local only if FHE absolutely cannot work
+## Mac FHE is a probe; Vultr or CLEAR
 
-Not “slow.” Not “Mac is easier.” Not “no time to wait for compile.”
+Human 2026-09-12 07:22 ET. Per FHE row:
 
-**Absolutely cannot** for a row means all of:
+1. **Mac FHE probe** — compile + **one** encrypt → eval → decrypt on the Mac. Proves the circuit exists. `sk` stays on the Mac. This is not the demo host.
+2. **Vultr** — same weights/circuit on the live worker **or** a compile-farm instance (parallel VMs OK). Two stacks (Concrete + OpenFHE; SEAL too for S3). Extra VMs may compile at the same time. Live `umbra-choreo` stays up until the new zip passes XOR.
+3. **If it cannot land on Vultr** → ship **`LOCAL_CLEAR`** on the Mac (same `reference()` bits). Do **not** ship Mac FHE as the demo path. Do **not** put a plaintext matcher on either VM.
 
-1. Worker is **≥16 GB** (`free -m`) and reachable. If it is still 1 GB, **upgrade (P0)** — that is not a local-fallback ticket.
-2. You tried **at least two** stacks from the list above (S3: CryptoFace/SEAL + one other, or two build attempts).
-3. Each try is a real compile or `docker build` on the **worker**. Composer-2.5 first; **one** Fable 5.1 Task + one retry only if that compile is stuck.
-4. LEDGER has `cmd:` and ≥5 lines `stderr:` per failed stack.
+**Cannot land on Vultr** means all of:
 
-Then, **on the Mac only**, in this order:
+1. A ≥16 GB x86 box is up (live worker or a compile-farm VM; farm may be ~60 GB). A 1 GB box is not a fallback ticket.
+2. At least two stacks tried (S3: CryptoFace/SEAL + one other, or two builds).
+3. Each try is a real compile on **Vultr x86** (farm VM counts). `cursor-grok-4.6-xhigh-fast` first; **one** Fable 5.1 Task + one retry only if that compile is stuck.
+4. LEDGER has `cmd:` and ≥5 lines `stderr:` per failed stack. Note `MAC_FHE_PROBE=ok|fail`.
 
-1. **`LOCAL_FHE`** — same circuit, eval on the Mac, `sk` never uploaded. Tests still go through encrypt → (local server) → decrypt. Prefer this.
-2. **`LOCAL_CLEAR`** — numpy / local model on the Mac, same `reference()` bits. Last resort so verification still works.
+`RESULT` for a shipped row is `VULTR_*` or `LOCAL_CLEAR`. `LOCAL_FHE` is only the probe, not the demo host.
 
-Illegal: plaintext matcher **on umbra-worker**. Illegal: writing `RESULT=VULTR_*` for a local eval. Illegal: skipping the two-stack try.
+Illegal: plaintext matcher **on umbra-worker** or a farm VM. Illegal: writing `RESULT=VULTR_*` for a local eval. Illegal: skipping the two-stack Vultr try because the Mac probe failed (x86 may still compile).
 
-Phase-DONE must say `EVAL_HOST=vultr` or `EVAL_HOST=mac` per shipped row. Vultr screens need **at least one** verification bit with `EVAL_HOST=vultr`. If P2 is entirely local, say so in DONE — still ship verification, do not pretend it ran on Vultr.
+Phase-DONE must say `EVAL_HOST=vultr` or `EVAL_HOST=mac` per shipped row. Vultr screens need **at least one** verification bit with `EVAL_HOST=vultr`. P2 already is that bit.
 
 ## Mac as Vultr stand-in (infra down)
 
@@ -118,17 +121,17 @@ ufw --force enable
 
 ## Worker RAM
 
-Smoke worker is **1 GB**. FHE needs **`vc2-6c-16gb`**. If `free -m` Mem < 12000, upgrade or BLOCKED — do not use that as a local-fallback ticket.
+Smoke / orch can stay **1 GB**. FHE floor is **≥16 GB** (`free -m` Mem ≥ 12000). Live worker may stay `vc2-6c-16gb`. Compile-farm VMs may be **~32–64 GB**. Do not treat 16 GB as a ceiling. Do not rent 96 GB+ unless a ~60 GB compile OOM'd. If the only x86 box is still 1 GB, upgrade or BLOCKED — that is not a local-fallback ticket.
 
 ## Audits (every phase, new context)
 
 | Step | Who | Fail if |
 |---|---|---|
-| Tests written | composer-2.5 (never `*-fast`) | mock FHE, skip-if-no-Vultr, localhost while VMs up, one stack only then omit, missing two-key/evk/freshness on a `VULTR_*` row |
-| Hard compile | composer-2.5 first; **Fable 5.1 only if stuck** | Fable used for P0/P1/P4/P9 or as the overnight Goal |
-| Tests green | **new** composer-2.5 | builder stdout only; `VULTR_*` but host is not orch public IP |
+| Tests written | cursor-grok-4.6-xhigh-fast | mock FHE, skip-if-no-Vultr, localhost while VMs up, one stack only then omit, missing two-key/evk/freshness on a `VULTR_*` row |
+| Hard compile | cursor-grok-4.6-xhigh-fast first; **Fable 5.1 only if stuck** | Fable used for P0/P1/P4/P9 or as the overnight Goal |
+| Tests green | **new** cursor-grok-4.6-xhigh-fast | builder stdout only; `VULTR_*` but host is not orch public IP |
 | XOR | `codex exec --ephemeral -s read-only -m gpt-5.6-sol "…" </dev/null` | worker decrypts/classifies plaintext `v`/face/mel/xyt/`sk` |
-| Phase DONE | **new** composer-2.5 | `python -O`; LEDGER row with no `STACKS_TRIED`; local eval labeled Vultr |
+| Phase DONE | **new** cursor-grok-4.6-xhigh-fast | `python -O`; LEDGER row with no `STACKS_TRIED`; local eval labeled Vultr |
 
 Verdict = last line only. Save `umbra/audits/`. Builder never self-PASS. No Cursor-hosted OpenAI. No `git commit` unless asked.
 

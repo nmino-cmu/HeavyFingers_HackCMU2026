@@ -71,7 +71,7 @@ python3 umbra/test_vpc.py
 
 Expected: FAIL (no `/health` or `/eval` on real orch yet, or python smoke unit is not the contract).
 
-- [ ] **Step 3: composer-2.5 test audit** (RULES prompt). FAIL if localhost default exists.
+- [ ] **Step 3: cursor-grok-4.6-xhigh-fast test audit** (RULES prompt). FAIL if localhost default exists.
 
 ---
 
@@ -101,6 +101,6 @@ ssh root@$VULTR_ORCH_IP 'ufw allow 8080/tcp; docker run -d --name orch --network
 ```
 
 - [ ] **Step 3: Re-run `python3 umbra/test_vpc.py`** Expected: PASS, `CHECKS_RUN>=8`.
-- [ ] **Step 4: Fresh composer-2.5 re-runs the command.** Then `umbra/phases/P1-DONE.md`.
+- [ ] **Step 4: Fresh cursor-grok-4.6-xhigh-fast re-runs the command.** Then `umbra/phases/P1-DONE.md`.
 
 Do not start P2 in this Goal.

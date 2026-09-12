@@ -1,6 +1,6 @@
-# Umbra — one composer-2.5 Task per phase
+# Umbra — one Grok 4.6 xhigh FAST Task per phase
 
-Dispatcher: [`ORCHESTRATOR`](2026-09-12-umbra-ORCHESTRATOR.md). **Not** a Fable Goal. Paste RULES + **one** `P*.md` into a **composer-2.5** Task (empty history). Fable only if compile is stuck.
+Dispatcher: [`ORCHESTRATOR`](2026-09-12-umbra-ORCHESTRATOR.md). **Not** a Fable Goal. Paste RULES + **one** `P*.md` into a **Grok 4.6 xhigh FAST** (`cursor-grok-4.6-xhigh-fast`) Task (empty history). Fable only if compile is stuck. Never Composer 2.5.
 
 Do **not** paste [`../specs/2026-09-12-umbra-GOAL-PROMPT.md`](../specs/2026-09-12-umbra-GOAL-PROMPT.md) (STALE).
 
@@ -14,7 +14,7 @@ Do **not** paste [`../specs/2026-09-12-umbra-GOAL-PROMPT.md`](../specs/2026-09-1
 | P3 Choreo | [P3-choreo](2026-09-12-umbra-P3-choreo.md) | `P3-DONE.md` | P2 |
 | P4 S1 + S19 | [P4-s1-s19](2026-09-12-umbra-P4-s1-s19.md) | `P4-DONE.md` | P2 |
 
-Each FHE row: try Concrete **and** OpenFHE (SEAL too for face). Local Mac only if those stacks fail on the 16 GB worker (RULES).
+Each FHE row: Mac FHE probe (one run) → Vultr (live worker or extra compile VMs, Concrete **and** OpenFHE; SEAL too for face) → else Mac `LOCAL_CLEAR` (RULES). Never plaintext on a VM.
 
 ## Then — more verification
 

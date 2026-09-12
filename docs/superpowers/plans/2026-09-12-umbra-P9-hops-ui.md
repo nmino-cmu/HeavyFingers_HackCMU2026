@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-Obey RULES. Requires **P4-DONE**. Do **not** start this Goal until verification works. If the clock is short after P4, **this phase beats P5–P8**. RPC down → exit 1, not skip. Faucet empty → BLOCKED with stderr, do not fake txs. `test_sk_absent.py` already exists from P2 — extend it with hop key hashes.
+Obey RULES. **Builder:** Grok 4.6 xhigh FAST (`cursor-grok-4.6-xhigh-fast`, empty history). Requires **P4-DONE**. Do **not** start this Goal until verification works. If the clock is short after P4, **this phase beats P5–P8**. RPC down → exit 1, not skip. Faucet empty → BLOCKED with stderr, do not fake txs. `test_sk_absent.py` already exists from P2 — extend it with hop key hashes.
 
 ---
 
@@ -26,4 +26,4 @@ Obey RULES. Requires **P4-DONE**. Do **not** start this Goal until verification 
 
 - [ ] Manual: open the page, fixture path still produces the same FHE bits as P2/P3.
 - [ ] `umbra/test_egress.py` if not already: client through a record proxy, no `V_OK` bytes on the wire except ciphertext.
-- [ ] Product `umbra/DONE.md` only if P2 is green **on Vultr** and P4 exists. Fresh composer-2.5 runs **every** `umbra/test_*.py`. Clock: do not start this phase after 15:30.
+- [ ] Product `umbra/DONE.md` only if P2 is green **on Vultr** and P4 exists. Fresh cursor-grok-4.6-xhigh-fast runs **every** `umbra/test_*.py`. Clock: do not start this phase after 15:30.

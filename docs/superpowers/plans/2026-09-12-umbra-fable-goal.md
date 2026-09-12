@@ -1,5 +1,7 @@
 # STALE — DO NOT USE AS LAW
 
+Builder is **Grok 4.6 xhigh FAST** (`cursor-grok-4.6-xhigh-fast`). Ignore this file’s Composer / “no *-fast” lines.
+
 Use `2026-09-12-umbra-RULES.md` + one `2026-09-12-umbra-P*.md`. This file still says localhost-first and one Goal for everything.
 
 ---

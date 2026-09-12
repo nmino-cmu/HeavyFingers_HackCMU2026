@@ -88,7 +88,7 @@ def main():
     check(get_eval_host() in ("vultr", "mac"), f"EVAL_HOST={get_eval_host()}")
     client = Client()
     ct = client.quantize_encrypt_serialize(V_OK)
-    body = client.pack_eval_body(V_OK)
+    body = client.pack_eval_body(V_OK, CARD_RRP)
     check(len(ct) >= 500, f"ct size {len(ct)}")
     check(len(body) >= 1_000, f"crypto wire size {len(body)}")
     code, out, hdrs = post_eval(body, nonce="fresh-nonce-42")
@@ -108,7 +108,7 @@ def main():
     # two-key (Vultr only)
     if is_vultr():
         alt = second_client()
-        body_a = alt.pack_eval_body(V_OK)
+        body_a = alt.pack_eval_body(V_OK, CARD_RRP)
         code3, out3, _ = post_eval(body_a)
         check(code3 == 200, code3)
         try:
@@ -152,7 +152,7 @@ def main():
 
     # mutant sanity
     v_left = mutant("V_LEFT")
-    body_l = client.pack_eval_body(v_left)
+    body_l = client.pack_eval_body(v_left, CARD_RRP)
     _, out_l, _ = post_eval(body_l)
     bits_l = client.eval_bits(out_l)
     check(bits_l[0] == 0, "V_LEFT bit0")

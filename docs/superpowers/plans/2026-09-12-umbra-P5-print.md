@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-Obey RULES. Requires **P4-DONE** (verification first). Try OpenFHE **and** Concrete for S4 on the worker. If both fail → `LOCAL_FHE` / `LOCAL_CLEAR` on the Mac (same `.xyt` → bit). Never a plaintext matcher on the worker.
+Obey RULES. **Builder:** Grok 4.6 xhigh FAST (`cursor-grok-4.6-xhigh-fast`, empty history). Fable 5.1 only if compile is stuck. Requires **P4-DONE** (verification first). Try OpenFHE **and** Concrete for S4 on the worker. If both fail → `LOCAL_FHE` / `LOCAL_CLEAR` on the Mac (same `.xyt` → bit). Never a plaintext matcher on the worker.
 
 **Orch:** add `POST /print` → `$UMBRA_FHE_VPC_IP:8082`. Redeploy orch. UFW as RULES. Bind print to `$UMBRA_FHE_VPC_IP` only.
 
@@ -21,5 +21,5 @@ Obey RULES. Requires **P4-DONE** (verification first). Try OpenFHE **and** Concr
 **Files:** `umbra/test_print.py`, `umbra/worker/print_server.py`, `umbra/deploy/Dockerfile.print`
 
 - [ ] Two-key; enroll A pinky / probe A index + card.end=pinky → 0; plaintext `.xyt` POST → 4xx; `find` on VM has no tiny float templates.
-- [ ] New Fable 5.1 Task compiles OpenFHE match.
+- [ ] `cursor-grok-4.6-xhigh-fast` compiles OpenFHE match. Fable 5.1 only if stuck.
 - [ ] Tests on `$UMBRA_WORKER_URL`. Codex XOR. `umbra/phases/P5-DONE.md`.

@@ -10,7 +10,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from concrete.ml.deployment import FHEModelServer
 
-from umbra.protocol import looks_like_plaintext_v, unpack_request
+import numpy as np
+
+from umbra.protocol import CARD_BYTES, looks_like_plaintext_v, unpack_request
 
 BIND = os.environ.get("UMBRA_FHE_VPC_IP", "10.20.0.5")
 PORT = int(os.environ.get("UMBRA_FHE_PORT", "8081"))
@@ -72,12 +74,21 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, b"plaintext rejected", extra=extra)
             return
         try:
-            evk, ct = unpack_request(body)
+            evk, ct, card_raw = unpack_request(body)
         except ValueError as e:
             self._send(400, str(e).encode(), extra=extra)
             return
+        if len(card_raw) not in (0, CARD_BYTES):
+            self._send(400, b"bad card trailer", extra=extra)
+            return
         try:
-            result = get_server().run(ct, evk)
+            if card_raw:
+                import struct
+
+                card = np.asarray(struct.unpack(">5d", card_raw), dtype=np.float64).reshape(1, -1)
+                result = get_server().run(ct, evk, card)
+            else:
+                result = get_server().run(ct, evk)
             if isinstance(result, (list, tuple)):
                 result = result[0]
             out = result if isinstance(result, bytes) else bytes(result)

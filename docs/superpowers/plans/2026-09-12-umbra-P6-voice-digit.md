@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-Obey RULES. Requires **P4-DONE**. Try Concrete **and** OpenFHE. If both fail → local Mac (encrypted mel still preferred). No torch/whisper **on the worker**. No wallets.
+Obey RULES. **Builder:** Grok 4.6 xhigh FAST (`cursor-grok-4.6-xhigh-fast`, empty history). Fable 5.1 only if compile is stuck. Requires **P4-DONE**. Try Concrete **and** OpenFHE. If both fail → local Mac (encrypted mel still preferred). No torch/whisper **on the worker**. No wallets.
 
 **Orch:** add `POST /audio` → `$UMBRA_FHE_VPC_IP:8083`. Redeploy orch. UFW. Bind `$UMBRA_FHE_VPC_IP` only.
 
@@ -22,4 +22,4 @@ Obey RULES. Requires **P4-DONE**. Try Concrete **and** OpenFHE. If both fail →
 
 - [ ] Two-key; mel_B vs A → 0; float32 64×64 POST → 4xx; `find` no `*.pt`.
 - [ ] Mutants `V_INDEX` → S11=0, `V_DUB` → S14=0 if those bits still live in the choreo circuit instead of a second net — do not duplicate.
-- [ ] Fable 5.1 Task compiles. Tests + XOR. `umbra/phases/P6-DONE.md`.
+- [ ] `cursor-grok-4.6-xhigh-fast` compiles. Fable 5.1 only if stuck. Tests + XOR. `umbra/phases/P6-DONE.md`.

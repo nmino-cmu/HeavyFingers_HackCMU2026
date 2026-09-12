@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-Obey RULES. Requires P2-DONE. No wallets. Per bit: try Concrete **and** OpenFHE on the worker. If both fail (stderr in LEDGER), `LOCAL_FHE` then `LOCAL_CLEAR` on the Mac — still ship the bit so verification works. Never a worker-side plaintext predicate.
+Obey RULES. **Builder:** Grok 4.6 xhigh FAST (`cursor-grok-4.6-xhigh-fast`, empty history). Fable 5.1 only if compile is stuck. Requires P2-DONE. No wallets. Per bit: try Concrete **and** OpenFHE on the worker. If both fail (stderr in LEDGER), `LOCAL_FHE` then `LOCAL_CLEAR` on the Mac — still ship the bit so verification works. Never a worker-side plaintext predicate.
 
 ---
 
@@ -27,8 +27,8 @@ Obey RULES. Requires P2-DONE. No wallets. Per bit: try Concrete **and** OpenFHE 
 - S9: talk-then-move → 0
 
 - [ ] **Step 1: Write failing tests.** Auditor greps `umbra/client.py` for card logic after `decrypt` — FAIL if present.
-- [ ] **Step 2: composer-2.5 test audit.**
-- [ ] **Step 3: Implement circuit widen** via a **new** Fable 5.1 Task. Redeploy worker.
-- [ ] **Step 4: Run choreo + floor + vpc + harness.** Codex XOR. Fresh composer-2.5 re-run. `umbra/phases/P3-DONE.md`.
+- [ ] **Step 2: cursor-grok-4.6-xhigh-fast test audit.**
+- [ ] **Step 3: Implement circuit widen** via a **new** `cursor-grok-4.6-xhigh-fast` Task (empty history). Fable 5.1 only if compile is stuck. Redeploy worker.
+- [ ] **Step 4: Run choreo + floor + vpc + harness.** Codex XOR. Fresh cursor-grok-4.6-xhigh-fast re-run. `umbra/phases/P3-DONE.md`.
 
 Do not start P4 in this Goal.

@@ -7,6 +7,7 @@ import tempfile
 
 from concrete.ml.deployment import FHEModelClient
 
+from umbra.fixtures import encode_card
 from umbra.protocol import pack_request, unpack_request
 
 ARTIFACT_DIR = pathlib.Path(os.environ.get("UMBRA_FHE_ARTIFACTS", "umbra/artifacts"))
@@ -26,20 +27,31 @@ class Client:
     def evk(self) -> bytes:
         return self._evk
 
-    def quantize_encrypt_serialize(self, v) -> bytes:
+    def quantize_encrypt_serialize(self, v, card=None) -> bytes:
         import numpy as np
 
         x = np.asarray(v, dtype=np.float64).reshape(1, -1)
-        return self._client.quantize_encrypt_serialize(x)
+        if card is None:
+            return self._client.quantize_encrypt_serialize(x)
+        c = np.asarray(encode_card(card), dtype=np.float64).reshape(1, -1)
+        return self._client.quantize_encrypt_serialize(x, c)
 
     def deserialize_decrypt_dequantize(self, encrypted_result: bytes):
         out = self._client.deserialize_decrypt_dequantize(encrypted_result)
         bits = (out.reshape(-1) >= 0.5).astype(int).tolist()
         return bits
 
-    def pack_eval_body(self, v) -> bytes:
+    def pack_eval_body(self, v, card) -> bytes:
         ct = self.quantize_encrypt_serialize(v)
-        return pack_request(self._evk, ct)
+        return self.pack_eval_body_from_ct(ct, card)
+
+    def clear_card_array(self, card):
+        import numpy as np
+
+        return np.asarray(encode_card(card), dtype=np.float64).reshape(1, -1)
+
+    def pack_eval_body_from_ct(self, ct: bytes, card) -> bytes:
+        return pack_request(self._evk, ct, encode_card(card))
 
     def eval_bits(self, encrypted_result: bytes):
         return self.deserialize_decrypt_dequantize(encrypted_result)

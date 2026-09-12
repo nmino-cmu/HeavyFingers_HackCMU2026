@@ -1,5 +1,7 @@
 # STALE — DO NOT PASTE
 
+Builder is **Grok 4.6 xhigh FAST** (`cursor-grok-4.6-xhigh-fast`). This file still names Composer — ignore that.
+
 This file allows localhost DONE and a one-stack omit. Use instead:
 
 - `docs/superpowers/plans/2026-09-12-umbra-RULES.md`

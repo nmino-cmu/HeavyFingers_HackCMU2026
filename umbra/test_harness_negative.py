@@ -38,7 +38,7 @@ def main():
     )
     time.sleep(0.5)
     client = Client()
-    body = client.pack_eval_body(V_OK)
+    body = client.pack_eval_body(V_OK, CARD_RRP)
     try:
         req = urllib.request.Request(
             f"http://127.0.0.1:{PORT}/eval",

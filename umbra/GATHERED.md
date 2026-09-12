@@ -14,3 +14,7 @@ No secrets. API key is in `umbra/.env` (gitignored) and `~/.umbra-vultr.env`.
 - Old 1 GB worker `0e61feaf-…` was stuck locked after a failed in-place upgrade; left for later delete when unlocked
 - Docker + `/opt/umbra` + ufw (22 + VPC) on the 16 GB box; `free -m` Mem total 15982
 - VPC ping orch → 10.20.0.5 ok
+- 2026-09-12 07:26: old worker `0e61feaf` `207.246.94.252` / `10.20.0.4` is 16 GB idle — farm-a (not live P2)
+- farm-fast `d666350a` `45.32.5.249` / `10.20.0.6` vc2-8c-32gb (P5)
+- farm-heavy `ebad155c` `104.156.226.53` / `10.20.0.7` vc2-8c-32gb (P6)
+- Parallel P3–P8. Live P2 stays `10.20.0.5`. See `umbra/FARM.md`

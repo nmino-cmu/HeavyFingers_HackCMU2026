@@ -55,6 +55,7 @@ class Orch(BaseHTTPRequestHandler):
             "/print": (os.environ.get("UMBRA_PRINT_UPSTREAM", "http://10.20.0.6:8082"), "/print"),
             "/enroll": (os.environ.get("UMBRA_PRINT_UPSTREAM", "http://10.20.0.6:8082"), "/enroll"),
             "/audio": (os.environ.get("UMBRA_AUDIO_UPSTREAM", "http://10.20.0.7:8083"), "/audio"),
+            "/audio-cnn": (os.environ.get("UMBRA_AUDIO_CNN_UPSTREAM", "http://10.20.0.7:8093"), "/audio"),
             "/face": (os.environ.get("UMBRA_FACE_UPSTREAM", "http://10.20.0.6:8084"), "/face"),
             "/bid": (os.environ.get("UMBRA_BID_UPSTREAM", "http://10.20.0.6:8085"), "/bid"),
         }

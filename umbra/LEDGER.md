@@ -47,6 +47,13 @@ ModuleNotFoundError: No module named 'openfhe.openfhe'
 Mac OpenFHE wheel has no native module. Farm-fast OpenFHE EvalSub serialize was a try, not the shipped path.
 Shipped: Concrete TFHE print on 10.20.0.6:8082. test_print.py CHECKS_RUN=24 EVAL_HOST=vultr (orchestrator re-run).
 
+ROW S4 STACKS_TRIED=openfhe,concrete RESULT=VULTR_OPENFHE
+EVAL_HOST=vultr
+MAC_FHE_PROBE=fail
+farm-a host Python 3.10.12 `import openfhe` OK. Worker EvalSub on $UMBRA_FHE_VPC_IP:8092.
+test_print_openfhe.py CHECKS_RUN=9. See umbra/phases/P5-OPENFHE.md (does not replace P5-DONE Concrete :8082).
+XOR Sol usage-limited; mechanical note umbra/audits/P5-openfhe-xor.md.
+
 ROW S2 STACKS_TRIED=concrete,openfhe RESULT=VULTR_CONCRETE
 EVAL_HOST=vultr
 MAC_FHE_PROBE=ok
@@ -59,6 +66,12 @@ Traceback (most recent call last):
 ModuleNotFoundError: No module named 'openfhe.openfhe'
 PyPI openfhe wheel is CPython 3.10 on farm-heavy 3.11. Shipped path is TinyS2 Concrete-ML 10.20.0.7:8083.
 test_voice.py CHECKS_RUN=42 (2026-09-12 orchestrator re-run).
+
+ROW S2 STACKS_TRIED=concrete:conv1d,openfhe RESULT=VULTR_CONCRETE
+EVAL_HOST=vultr
+ARCH=conv1d
+TinyS2 stays on :8083. CNN sidecar 10.20.0.7:8093 orch /audio-cnn. Orchestrator re-run A=1 B=0 via farm-heavy curl. client.zip Mac only.
+OpenFHE still no 3.11 module. n_bits=8 Conv1d/MLP2/Conv2d 8×8 failed (see P6-CNN.md).
 
 ROW S3 STACKS_TRIED=cryptoface,tenseal,concrete RESULT=VULTR_SEAL
 EVAL_HOST=vultr

@@ -33,7 +33,10 @@ def main():
     check(len(LABELS) == 16, LABELS)
     from umbra.assemble import SAMPLES, run_lane
 
-    check([s["id"] for s in SAMPLES] == ["choreo", "print", "voice", "face", "bid", "words"], SAMPLES)
+    check(
+        [s["id"] for s in SAMPLES] == ["choreo", "print", "voice", "voice_cnn", "face", "bid", "words"],
+        SAMPLES,
+    )
     w = run_lane("words")
     check(w["ok"] and w["bits"] == [1], w)
     if os.environ.get("UMBRA_ASSEMBLE_LIVE") == "1":

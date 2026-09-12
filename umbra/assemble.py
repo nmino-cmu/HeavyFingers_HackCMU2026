@@ -103,6 +103,27 @@ def _voice():
     return list(bits), list(reference_s2(VEC_A))
 
 
+def _voice_cnn():
+    art = Path(os.environ.get("UMBRA_VOICE_CNN_ARTIFACTS", HERE / "artifacts-voice-cnn"))
+    if not _zip(art):
+        return None, None
+    import numpy as np
+    from concrete.ml.deployment import FHEModelClient
+
+    from umbra.circuits.voice_s2 import VEC_A, reference_s2
+    from umbra.protocol import pack_request
+
+    key_dir = tempfile.mkdtemp(prefix="umbra-cnn-")
+    c = FHEModelClient(path_dir=str(art), key_dir=key_dir)
+    c.generate_private_and_evaluation_keys()
+    x = np.asarray(VEC_A, dtype=np.float64).reshape(1, 1, 16)
+    out = c.deserialize_decrypt_dequantize(
+        post("/audio-cnn", pack_request(c.get_serialized_evaluation_keys(), c.quantize_encrypt_serialize(x)))
+    )
+    bits = (np.asarray(out).reshape(-1) >= 0.5).astype(int).tolist()
+    return bits, list(reference_s2(VEC_A))
+
+
 def _face():
     from umbra.face_ckks import decrypt_l2, encrypt_vec, evk_bytes, face_a, match_bit, new_context, pack_face
 
@@ -161,6 +182,14 @@ SAMPLES = (
         "slow": False,
     },
     {
+        "id": "voice_cnn",
+        "title": "Voice CNN-S",
+        "stack": "Concrete-ML Conv1d(4ch,k=3)+Linear",
+        "where": "10.20.0.7:8093",
+        "path": "/audio-cnn",
+        "slow": False,
+    },
+    {
         "id": "face",
         "title": "Face S3",
         "stack": "TenSEAL 0.3.16 CKKS L2",
@@ -200,6 +229,8 @@ def run_lane(name: str):
     if name == "print":
         got = _lane("print", lambda: _print(force=True))
         bits, loc = got[1]
+    elif name == "voice_cnn":
+        bits, loc = _lane("voice_cnn", _voice_cnn)[1]
     else:
         fn = dict(LANES).get(name)
         if fn is None:

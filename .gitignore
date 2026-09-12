@@ -13,6 +13,8 @@ umbra/artifacts-bid/
 umbra/artifacts_print/
 umbra/artifacts-print/
 .venv-umbra/
+umbra/enroll_keys/
+umbra/roster_data/
 .artifacts/
 **/__pycache__/
 *.pyc

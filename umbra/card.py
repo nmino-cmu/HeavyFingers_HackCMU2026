@@ -41,7 +41,7 @@ def render(card: dict) -> str:
         f"motion: {card['motion']}\n"
         f"where:  {card['where']}\n"
         f"side:   {card['side']}\n"
-        f"end:    {card['end']}\n"
+        f"end:\n"
     )
 
 
@@ -53,7 +53,12 @@ def transcribe(audio_path: str) -> str:
     if _model is None:
         name = os.environ.get("UMBRA_WHISPER_MODEL", "tiny.en")
         _model = whisper.load_model(name)
-    return _model.transcribe(str(audio_path), language="en")["text"]
+    return _model.transcribe(
+        str(audio_path),
+        language="en",
+        temperature=0,
+        condition_on_previous_text=False,
+    )["text"]
 
 
 def main(argv=None) -> int:

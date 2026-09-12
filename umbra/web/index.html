@@ -2,42 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Umbra — samples</title>
-  <style>
-    :root { color-scheme: dark; --bg:#0c0d10; --ink:#e8e6df; --muted:#8b8a84; --ok:#3dba7a; --no:#c45c4a; --line:#2a2b30; --tile:#14151a; }
-    body { margin:0; font: 16px/1.45 ui-sans-serif, system-ui, sans-serif; background:var(--bg); color:var(--ink); }
-    main { max-width: 52rem; margin: 2rem auto; padding: 0 1.25rem 3rem; }
-    h1 { font-weight: 600; letter-spacing: -0.02em; margin: 0 0 0.35rem; }
-    .card { border:1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; margin: 1rem 0; background:var(--tile); }
-    .card pre { white-space: pre-wrap; margin: 0.4rem 0 0; font: 13px/1.4 ui-monospace, monospace; }
-    .row { display:flex; gap:0.6rem; flex-wrap:wrap; margin: 0.8rem 0 0; }
-    button, .file { background:#1a1b20; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:0.45rem 0.8rem; cursor:pointer; }
-    button:disabled { opacity:0.5; cursor:wait; }
-    .muted { color:var(--muted); font-size: 0.92rem; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap:0.7rem; margin-top:0.8rem; }
-    .tile { border:1px solid var(--line); border-radius:10px; padding:0.85rem 0.9rem; }
-    .tile h3 { margin:0 0 0.25rem; font-size:0.95rem; font-weight:600; }
-    .tile .stack { color:var(--muted); font-size:0.78rem; min-height:2.3em; }
-    .pill { display:inline-block; margin-top:0.5rem; font-size:0.75rem; padding:0.12rem 0.45rem; border-radius:999px; background:#2a2b30; }
-    .pill.ok { background:var(--ok); color:#062; }
-    .pill.no { background:var(--no); color:#fff; }
-    .lights { display:flex; gap:0.45rem; flex-wrap:wrap; align-items:center; }
-    .bit { width:1.35rem; height:1.35rem; border-radius:50%; background:#2a2b30; display:grid; place-items:center; font-size:0.62rem; color:#bbb; }
-    .bit.on { background:var(--ok); color:#062; }
-    .bit.off { background:var(--no); color:#fff; }
-    a { color:#8cb4ff; }
-    video { width:100%; max-height:12rem; background:#000; border-radius:8px; margin-top:0.5rem; }
-    #err { color:var(--no); font-size:0.9rem; min-height:1.2em; }
-  </style>
+  <title>Umbra — sign in</title>
+  <link rel="stylesheet" href="/style.css?v=qa3">
 </head>
 <body>
 <main>
   <h1>Umbra</h1>
-  <p class="muted">Samples on Vultr ciphertext. Crops and <code>sk</code> stay here. A pass grows a hop path — not an account.</p>
+  <nav class="muted"><a href="/enroll">Enroll</a></nav>
+  <section class="card" id="justEnrolled" hidden>
+    <h2 id="enrollNum"></h2>
+    <p>Save this number to sign in later.</p>
+  </section>
+  <p class="muted">Encrypted roster stays on this laptop. Vultr only sees ciphertext during a check.</p>
 
   <section class="card">
+    <strong>Sign in</strong>
+    <p class="muted" id="gateHint">Enroll first, then start sign in. The challenge card stays hidden until then.</p>
+    <div class="row">
+      <button type="button" id="beginSignin">Sign in</button>
+    </div>
+  </section>
+
+  <section class="card" id="cardBox" hidden>
     <strong>Card</strong>
-    <pre id="card">…</pre>
+    <pre id="card"></pre>
   </section>
 
   <section class="card">
@@ -96,10 +84,32 @@ function pill(el, ok, text) {
   el.className = "pill " + (ok ? "ok" : "no");
 }
 const tiles = {};
-async function boot() {
+let people = [];
+
+async function showCard() {
   const c = await Umbra.card();
   document.getElementById("card").textContent =
-    `say:    ${c.say}\nhand:   ${c.hand}\nmotion: ${c.motion}\nwhere:  ${c.where}\nside:   ${c.side}\nend:    ${c.end}`;
+    `say:    ${c.say}\nhand:   ${c.hand}\nmotion: ${c.motion}\nwhere:  ${c.where}\nside:   ${c.side}\nend:`;
+  document.getElementById("cardBox").hidden = false;
+}
+
+async function boot() {
+  const just = new URLSearchParams(location.search).get("enrolled");
+  if (just) {
+    document.getElementById("enrollNum").textContent = "Enrolled user " + just;
+    document.getElementById("justEnrolled").hidden = false;
+  }
+  const rost = await Umbra.roster();
+  people = rost.people || [];
+  const btn = document.getElementById("beginSignin");
+  if (!people.length) {
+    btn.disabled = true;
+    document.getElementById("gateHint").textContent = "No one on the roster yet. Enroll first.";
+  } else {
+    btn.disabled = false;
+    document.getElementById("gateHint").textContent =
+      "Enrolled: " + people.map(p => p.id).join(", ") + ". Sign in to get a new phrase and action.";
+  }
   const {samples} = await fetch("/samples").then(r => r.json());
   const grid = document.getElementById("grid");
   samples.forEach(s => {
@@ -113,6 +123,13 @@ async function boot() {
     t.querySelector("button").onclick = () => runOne(s.id);
   });
 }
+document.getElementById("beginSignin").onclick = () => {
+  if (!people.length) {
+    document.getElementById("err").textContent = "enroll first";
+    return;
+  }
+  location.assign("/signin");
+};
 async function runOne(lane) {
   const p = tiles[lane];
   pill(p, false, "running");
@@ -155,12 +172,14 @@ document.getElementById("upload").onchange = ev => {
   const f = ev.target.files[0];
   if (!f) return;
   const v = document.getElementById("preview");
+  v.classList.remove("mirror");
   v.src = URL.createObjectURL(f);
   v.hidden = false;
 };
 document.getElementById("record").onclick = async () => {
   const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
   const v = document.getElementById("preview");
+  v.classList.add("mirror");
   v.srcObject = stream;
   v.hidden = false;
   v.play();

@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+os.environ.setdefault("UMBRA_WORKER_URL", "http://207.246.126.149:8080")
 
 WEB = Path(__file__).resolve().parent
 LAST = ROOT / "umbra/fixtures/last_hops.json"
@@ -34,13 +35,31 @@ class H(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        if "html" in ctype or "javascript" in ctype or "css" in ctype:
+            self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
+
+    def do_HEAD(self):
+        # browsers probe with HEAD; do not 501
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
 
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
             self._send(200, (WEB / "index.html").read_bytes(), "text/html; charset=utf-8")
+            return
+        if path in ("/enroll", "/enroll.html"):
+            self._send(200, (WEB / "enroll.html").read_bytes(), "text/html; charset=utf-8")
+            return
+        if path in ("/signin", "/signin.html"):
+            self._send(200, (WEB / "signin.html").read_bytes(), "text/html; charset=utf-8")
+            return
+        if path == "/style.css":
+            self._send(200, (WEB / "style.css").read_bytes(), "text/css; charset=utf-8")
             return
         if path == "/card":
             from umbra.card import generate
@@ -60,6 +79,11 @@ class H(BaseHTTPRequestHandler):
                 self._send(200, LAST.read_bytes())
             else:
                 self._send(200, b"{}")
+            return
+        if path == "/roster":
+            from umbra.enroll import default_roster
+
+            self._send(200, json.dumps({"people": default_roster().summary()}).encode())
             return
         self._send(404, b"no")
 
@@ -85,6 +109,57 @@ class H(BaseHTTPRequestHandler):
             DECIDE = d
             self._send(200, json.dumps(payload).encode())
             return
+        if path == "/qa/face":
+            n = int(self.headers.get("Content-Length") or "0")
+            raw = self.rfile.read(n) if n else b""
+            try:
+                img, pose = _qa_image(self.headers.get("Content-Type", ""), raw)
+                from umbra.face_qa import qa_still
+
+                self._send(200, json.dumps(qa_still(img, pose)).encode())
+            except Exception as e:
+                self._send(400, str(e).encode(), "text/plain; charset=utf-8")
+            return
+        if path == "/qa/voice":
+            n = int(self.headers.get("Content-Length") or "0")
+            raw = self.rfile.read(n) if n else b""
+            try:
+                wav = _qa_voice(self.headers.get("Content-Type", ""), raw)
+                from umbra.enroll_extract import qa_voice
+
+                self._send(200, json.dumps(qa_voice(wav, min_s=6.0)).encode())
+            except Exception as e:
+                self._send(400, str(e).encode(), "text/plain; charset=utf-8")
+            return
+        if path == "/verify":
+            n = int(self.headers.get("Content-Length") or "0")
+            raw = self.rfile.read(n) if n else b""
+            try:
+                take, card, pid = _verify_parts(self.headers.get("Content-Type", ""), raw)
+                from umbra.verify import run
+
+                out = run(take, card, person_id=pid or "")
+            except Exception as e:
+                self._send(400, str(e).encode(), "text/plain; charset=utf-8")
+                return
+            self._send(200, json.dumps(out).encode())
+            return
+        if path == "/enroll":
+            n = int(self.headers.get("Content-Length") or "0")
+            raw = self.rfile.read(n) if n else b""
+            try:
+                faces, voices, prints, pid = _parts(self.headers.get("Content-Type", ""), raw)
+                from umbra.enroll import enroll
+
+                eid, blob = enroll(faces, voices, prints, person_id=pid)
+            except Exception as e:
+                self._send(400, str(e).encode(), "text/plain; charset=utf-8")
+                return
+            self._send(
+                200,
+                json.dumps({"id": eid, "bytes": len(blob), "people": _roster_summary()}).encode(),
+            )
+            return
         if path == "/hop":
             from umbra.hops import run
 
@@ -100,6 +175,109 @@ class H(BaseHTTPRequestHandler):
         self._send(404, b"no")
 
 
+def _roster_summary():
+    from umbra.enroll import default_roster
+
+    return default_roster().summary()
+
+
+def _parts(content_type: str, body: bytes):
+    from email import message_from_bytes
+    from email.policy import default as policy
+
+    msg = message_from_bytes(b"Content-Type: " + content_type.encode() + b"\r\n\r\n" + body, policy=policy)
+    faces, voices, prints = [], [], []
+    pid = None
+    if not msg.is_multipart():
+        raise ValueError("need multipart")
+    for part in msg.iter_parts():
+        name = part.get_param("name", header="content-disposition")
+        payload = part.get_payload(decode=True) or b""
+        if name == "id":
+            pid = payload.decode("utf-8", "replace").strip() or None
+        elif name == "face" and payload:
+            faces.append(payload)
+        elif name == "voice" and payload:
+            voices.append(payload)
+        elif name == "print" and payload:
+            prints.append(payload)
+    if not faces or not voices or not prints:
+        raise ValueError("need face, voice, and finger stills")
+    return faces, voices, prints, pid
+
+
+def _verify_parts(content_type: str, body: bytes):
+    from email import message_from_bytes
+    from email.policy import default as policy
+
+    msg = message_from_bytes(b"Content-Type: " + content_type.encode() + b"\r\n\r\n" + body, policy=policy)
+    take, card, pid = b"", {}, None
+    if not msg.is_multipart():
+        raise ValueError("need multipart")
+    for part in msg.iter_parts():
+        name = part.get_param("name", header="content-disposition")
+        payload = part.get_payload(decode=True) or b""
+        if name == "take" and payload:
+            take = payload
+        elif name == "card" and payload:
+            card = json.loads(payload.decode("utf-8", "replace") or "{}")
+        elif name == "id" and payload:
+            pid = payload.decode("utf-8", "replace").strip() or None
+    if not take:
+        raise ValueError("need a recorded take")
+    return take, card, pid
+
+
+def _qa_image(content_type: str, body: bytes):
+    from email import message_from_bytes
+    from email.policy import default as policy
+
+    msg = message_from_bytes(b"Content-Type: " + content_type.encode() + b"\r\n\r\n" + body, policy=policy)
+    img, pose = b"", "front"
+    if not msg.is_multipart():
+        raise ValueError("need multipart")
+    for part in msg.iter_parts():
+        name = part.get_param("name", header="content-disposition")
+        payload = part.get_payload(decode=True) or b""
+        if name == "face" and payload:
+            img = payload
+        elif name == "pose" and payload:
+            pose = payload.decode("utf-8", "replace").strip() or "front"
+    if not img:
+        raise ValueError("need a face still")
+    return img, pose
+
+
+def _qa_voice(content_type: str, body: bytes) -> bytes:
+    from email import message_from_bytes
+    from email.policy import default as policy
+
+    msg = message_from_bytes(b"Content-Type: " + content_type.encode() + b"\r\n\r\n" + body, policy=policy)
+    wav = b""
+    if not msg.is_multipart():
+        raise ValueError("need multipart")
+    for part in msg.iter_parts():
+        name = part.get_param("name", header="content-disposition")
+        payload = part.get_payload(decode=True) or b""
+        if name == "voice" and payload:
+            wav = payload
+    if not wav:
+        raise ValueError("need voice")
+    return wav
+
+
 if __name__ == "__main__":
+    import threading
+
+    def _warm():
+        try:
+            from umbra.verify import warm
+
+            warm()
+            sys.stderr.write("web warmup done\n")
+        except Exception as e:
+            sys.stderr.write("web warmup %s\n" % e)
+
+    threading.Thread(target=_warm, daemon=True).start()
     port = int(os.environ.get("UMBRA_WEB_PORT", "8765"))
     ThreadingHTTPServer(("127.0.0.1", port), H).serve_forever()

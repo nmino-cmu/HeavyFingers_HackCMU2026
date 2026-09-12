@@ -44,9 +44,10 @@ def _fresh_id() -> str:
     return str(random.randint(100000000, 999999999))
 
 
-def enroll_bytes(faces, voices, prints, person_id=None):
-    if not faces or not voices or not prints:
-        raise ValueError("need face, voice, and print stills")
+def enroll_bytes(faces, voices, prints=None, person_id=None):
+    if not faces or not voices:
+        raise ValueError("need face and voice")
+    prints = prints or []
     pid = person_id or _fresh_id()
     ctx = new_context()
     items = []

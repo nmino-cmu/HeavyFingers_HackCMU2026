@@ -3,41 +3,45 @@
 <head>
   <meta charset="utf-8">
   <title>Umbra — do this</title>
-  <link rel="stylesheet" href="/style.css?v=qa5">
-  <style>
-    .bit.run, .lights.busy .bit {
-      background:#e4b42a; color:#1a1404;
-      animation: bitpulse 0.75s ease-in-out infinite;
-    }
-    @keyframes bitpulse {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(228,180,42,0.75); }
-      50% { transform: scale(1.28); box-shadow: 0 0 14px 5px rgba(228,180,42,0.55); }
-    }
-    video.mirror { transform: scaleX(-1); }
-  </style>
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/logo.png">
+  <link rel="stylesheet" href="/style.css?v=face7">
 </head>
-<body>
-<main>
-  <h1>Sign in</h1>
-  <nav class="muted"><a href="/">Back</a></nav>
-  <section class="card">
-    <strong>Do this</strong>
-    <p id="say"></p>
-    <p id="act">Fill the oval (close, centered, bright). Then record: say the words and wave your hand across your face.</p>
-    <div id="stage" hidden>
-      <video id="cam" class="mirror" playsinline muted autoplay></video>
-      <div id="guide"><div class="oval"></div></div>
+<body class="desktop face-page" data-bg="face">
+<div data-umbra-bg></div>
+<div class="desk face-desk">
+  <article class="win face-wire" data-win="face" data-win-preset="face">
+    <div class="win-bar face-wire-bar">
+      <h2>Face</h2>
+      <div class="win-chrome">
+        <button type="button" data-win-min aria-label="Minimize">-</button>
+        <a class="win-btn face-x" href="/" aria-label="Close">X</a>
+      </div>
     </div>
-    <div class="row">
-      <button type="button" id="rec" disabled>Record</button>
-      <button type="button" id="send">Send</button>
+    <div class="face-view" id="stage">
+      <video id="cam" class="mirror" playsinline muted autoplay></video>
+      <div id="guide" hidden><div class="oval"></div></div>
+      <img class="oval-asset" id="ovalPlaceholder" src="/assets/oval.svg" width="417" height="535" alt="">
+    </div>
+    <div class="face-foot">
+      <p id="act">
+        Place your face until it fully fits the ellipse.<br>
+        Hit record. Say the phrase: <span id="say">_________________________</span><br>
+        Stop recording. Send.
+      </p>
+      <div class="face-btns">
+        <button type="button" id="rec" disabled>Record</button>
+        <button type="button" id="send">Send</button>
+        <button type="button" id="skipHome" class="skip-home">Skip to home</button>
+      </div>
     </div>
     <div class="lights" id="lights"></div>
-    <p class="muted" id="status"></p>
-    <p id="err"></p>
-  </section>
-</main>
+    <div class="win-resize" aria-hidden="true"></div>
+  </article>
+</div>
 <script src="/umbra.js?v=qa4"></script>
+<script src="/vendor/grain.js"></script>
+<script src="/windows.js?v=wire5"></script>
 <script>
 let stream = null;
 let rec = null;
@@ -65,18 +69,14 @@ function paintLights(state, bits) {
 }
 
 function showErr(e) {
-  document.getElementById("err").textContent = String(e && e.message ? e.message : e);
+  if (e) console.error(e && e.message ? e.message : e);
 }
 
 function setLocked(on, reason) {
   locked = !!on;
   document.getElementById("guide").classList.toggle("ok", locked);
-  document.getElementById("rec").disabled = !locked && !recording;
-  if (!recording) {
-    document.getElementById("status").textContent = locked
-      ? "Locked. Record, say the words, wave your hand across your face."
-      : (reason || "Fill the oval — close, centered, well lit.");
-  }
+  if (!recording && stream) document.getElementById("rec").disabled = false;
+  if (reason) console.debug(reason);
 }
 
 function grabJpeg() {
@@ -99,40 +99,37 @@ async function tickQa() {
 }
 
 async function boot() {
-  const rost = await Umbra.roster();
-  if (!(rost.people || []).length) {
-    location.replace("/");
-    return;
-  }
-  pid = rost.people[rost.people.length - 1].id;
-  card = await Umbra.card();
-  document.getElementById("say").textContent = "Say: " + card.say;
-  document.getElementById("act").textContent =
-    "Fill the oval (close, centered, bright). Then record: say those words and wave your hand across your face.";
-  document.getElementById("status").textContent = "Signing in as " + pid + ". Open the camera and fill the oval.";
   paintLights("idle");
+  try {
+    const rost = await Umbra.roster();
+    const people = rost.people || [];
+    if (!people.length) {
+      console.info("roster empty");
+    } else {
+      pid = people[people.length - 1].id;
+      const sess = Umbra.session.get();
+      if (sess && sess.id && people.some((p) => p.id === sess.id)) pid = sess.id;
+      console.info("signing in as", pid);
+    }
+  } catch (e) {
+    showErr(e);
+  }
+  try {
+    card = await Umbra.card();
+    document.getElementById("say").textContent = "Say: " + card.say;
+  } catch (e) {
+    showErr(e);
+  }
 }
 
 async function openCam() {
   if (stream) return stream;
-  if (!/^(127\.0\.0\.1|localhost)$/.test(location.hostname) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    throw new Error("Camera is blocked on this URL. Open http://127.0.0.1:8765/signin");
-  }
-  document.getElementById("stage").hidden = false;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
-  } catch (e) {
-    throw new Error("Camera blocked. Allow camera for 127.0.0.1 in the address bar (or Safari → Settings → Websites → Camera), then try again.");
-  }
-  try {
-    const mic = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
-    mic.getAudioTracks().forEach((t) => stream.addTrack(t));
-  } catch (e) {}
   const v = document.getElementById("cam");
-  v.muted = true;
-  v.playsInline = true;
-  v.srcObject = stream;
-  try { await v.play(); } catch (e) { showErr(e); }
+  stream = await Umbra.openCam(v);
+  await Umbra.withMic(stream);
+  document.getElementById("ovalPlaceholder").hidden = true;
+  document.getElementById("guide").hidden = false;
+  document.getElementById("rec").disabled = false;
   setInterval(tickQa, 450);
   tickQa();
   return stream;
@@ -144,11 +141,11 @@ document.getElementById("rec").onclick = () => {
     recording = false;
     if (rec && rec.state !== "inactive") rec.stop();
     document.getElementById("rec").textContent = "Record";
-    document.getElementById("status").textContent = "Take saved. Send: face+voice FHE, words on this laptop, wave = face came back as you.";
+    console.info("take saved");
     return;
   }
-  if (!locked) {
-    showErr("lock the oval first — close, centered, well lit");
+  if (!stream) {
+    showErr("camera is not on");
     return;
   }
   openCam().then((s) => {
@@ -166,7 +163,6 @@ document.getElementById("rec").onclick = () => {
     take = null;
     document.getElementById("rec").textContent = "Stop";
     document.getElementById("rec").disabled = false;
-    document.getElementById("status").textContent = "Recording — say the words, wave across your face, then look back into the oval.";
   }).catch(showErr);
 };
 
@@ -190,7 +186,6 @@ document.getElementById("send").onclick = () => {
   stopRec().then(() => {
     if (!take || !take.size) throw new Error("record first");
     paintLights("run");
-    document.getElementById("status").textContent = "Face frames → Vultr FHE. Words stay on this laptop.";
     document.getElementById("send").disabled = true;
     const fd = new FormData();
     fd.append("take", take, "take.webm");
@@ -206,18 +201,29 @@ document.getElementById("send").onclick = () => {
     const th = out.thresh || {};
     const fl = face.l2 == null ? "—" : Number(face.l2).toFixed(1);
     const vl = voice.l2 == null ? "—" : Number(voice.l2).toFixed(2);
-    document.getElementById("status").textContent =
-      (out.ok ? "Pass " + out.id + "." : "Finished. Green = that check passed.") +
-      " Face L2 " + fl + " / " + (th.face || "?") +
-      ". Voice L2 " + vl + " / " + (th.voice || "?") +
-      (words.text ? ". Heard: " + words.text : "") +
-      ". " + (ms.total || 0) + " ms";
+    console.info("verify", {
+      ok: out.ok,
+      id: out.id,
+      faceL2: fl,
+      voiceL2: vl,
+      thresh: th,
+      heard: words.text || "",
+      ms: ms.total || 0,
+    });
+    if (out.ok) {
+      Umbra.session.set({ id: out.id || pid, at: Date.now() });
+      setTimeout(() => location.assign("/home"), 900);
+    }
   }).catch(showErr).finally(() => {
     document.getElementById("send").disabled = false;
   });
 };
 
 boot().then(openCam).catch(showErr);
+document.getElementById("skipHome").onclick = () => {
+  Umbra.session.set({ id: pid || (Umbra.session.get() || {}).id || "guest", at: Date.now() });
+  location.assign("/home");
+};
 </script>
 </body>
 </html>

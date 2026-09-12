@@ -15,6 +15,16 @@ os.environ.setdefault("UMBRA_WORKER_URL", "http://207.246.126.149:8080")
 WEB = Path(__file__).resolve().parent
 LAST = ROOT / "umbra/fixtures/last_hops.json"
 DECIDE = None
+_STATIC = {
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".woff2": "font/woff2",
+}
 
 
 def _artifacts():
@@ -40,6 +50,21 @@ class H(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _try_static(self, path: str) -> bool:
+        rel = path.lstrip("/")
+        if not rel or ".." in rel.split("/"):
+            return False
+        fp = (WEB / rel).resolve()
+        try:
+            fp.relative_to(WEB.resolve())
+        except ValueError:
+            return False
+        if not fp.is_file():
+            return False
+        ctype = _STATIC.get(fp.suffix.lower(), "application/octet-stream")
+        self._send(200, fp.read_bytes(), ctype)
+        return True
+
     def do_HEAD(self):
         # browsers probe with HEAD; do not 501
         self.send_response(200)
@@ -58,8 +83,13 @@ class H(BaseHTTPRequestHandler):
         if path in ("/signin", "/signin.html"):
             self._send(200, (WEB / "signin.html").read_bytes(), "text/html; charset=utf-8")
             return
-        if path == "/style.css":
-            self._send(200, (WEB / "style.css").read_bytes(), "text/css; charset=utf-8")
+        if path in ("/home", "/home.html"):
+            self._send(200, (WEB / "home.html").read_bytes(), "text/html; charset=utf-8")
+            return
+        if path in ("/favicon.ico", "/favicon.png"):
+            self._send(200, (WEB / "assets/logo.png").read_bytes(), "image/png")
+            return
+        if self._try_static(path):
             return
         if path == "/card":
             from umbra.card import generate
@@ -201,8 +231,8 @@ def _parts(content_type: str, body: bytes):
             voices.append(payload)
         elif name == "print" and payload:
             prints.append(payload)
-    if not faces or not voices or not prints:
-        raise ValueError("need face, voice, and finger stills")
+    if not faces or not voices:
+        raise ValueError("need face and voice")
     return faces, voices, prints, pid
 
 

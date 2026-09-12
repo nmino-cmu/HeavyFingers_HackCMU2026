@@ -70,15 +70,25 @@ async def _get_balance(address: str | Keypair | Pubkey, rpc: str) -> float:
 
 
 def send_sol(
-    from_wallet: Keypair,
-    to_address: str,
-    amount_sol: float,
+    wallet: Keypair | str | Path,
+    receiver_address: str,
+    amount: float,
     rpc: str = DEFAULT_RPC,
 ) -> str:
-    """Transfer SOL. Returns the transaction signature."""
-    if amount_sol <= 0:
-        raise ValueError("amount_sol must be positive")
-    return _run(_send_sol(from_wallet, to_address, amount_sol, rpc))
+    """Send `amount` SOL from `wallet` to `receiver_address`.
+
+    `wallet` can be a Keypair or a path to a keypair JSON file.
+    Returns the transaction signature.
+
+    Example:
+        send_sol(r"c:\\Users\\hello\\Downloads\\wallet-1-keypair(2).json",
+                 "DfgYv1sw56hVBtz753Hn6pKMg5kWiJjWUCJ91ek7af2K",
+                 0.1)
+    """
+    if amount <= 0:
+        raise ValueError("amount must be positive")
+    sender = wallet if isinstance(wallet, Keypair) else load_wallet(wallet)
+    return _run(_send_sol(sender, receiver_address, amount, rpc))
 
 
 async def _send_sol(from_wallet: Keypair, to_address: str, amount_sol: float, rpc: str) -> str:
@@ -139,6 +149,54 @@ def wait_for_incoming(
 def explorer_url(signature: str) -> str:
     return EXPLORER.format(sig=signature)
 
+#Test code
+def test_transfer(
+    from_wallet_path: str | Path,
+    to_wallet_path: str | Path,
+    amount_sol: float = 0.1,
+    rpc: str = DEFAULT_RPC,
+) -> dict:
+    """Send amount_sol from one keypair file to another and report balances.
+
+    Example:
+        from umbra.solana_wallet import test_transfer
+        result = test_transfer(
+            r"c:\\Users\\hello\\Downloads\\wallet-1-keypair(2).json",
+            r"c:\\Users\\hello\\Downloads\\wallet-1-keypair.json",
+            amount_sol=0.1,
+        )
+        print(result["explorer"])
+    """
+    sender = load_wallet(from_wallet_path)
+    receiver = load_wallet(to_wallet_path)
+    from_addr = receive_address(sender)
+    to_addr = receive_address(receiver)
+    if from_addr == to_addr:
+        raise ValueError("from and to wallets are the same address")
+
+    before_from = get_balance(sender, rpc=rpc)
+    before_to = get_balance(receiver, rpc=rpc)
+    if before_from < amount_sol:
+        raise ValueError(
+            f"sender balance {before_from} SOL is less than amount {amount_sol} SOL"
+        )
+
+    sig = send_sol(sender, to_addr, amount_sol, rpc=rpc)
+    after_from = get_balance(sender, rpc=rpc)
+    after_to = get_balance(receiver, rpc=rpc)
+    ok = after_to >= before_to + amount_sol * 0.999  # tiny float slack
+
+    return {
+        "ok": ok,
+        "signature": sig,
+        "explorer": explorer_url(sig),
+        "from": from_addr,
+        "to": to_addr,
+        "amount_sol": amount_sol,
+        "before": {"from": before_from, "to": before_to},
+        "after": {"from": after_from, "to": after_to},
+    }
+
 
 def _pubkey(address: str | Keypair | Pubkey) -> Pubkey:
     if isinstance(address, Keypair):
@@ -146,16 +204,3 @@ def _pubkey(address: str | Keypair | Pubkey) -> Pubkey:
     if isinstance(address, Pubkey):
         return address
     return Pubkey.from_string(address)
-
-
-if __name__ == "__main__":
-    # Tiny demo: create wallet, print receive address, optionally airdrop + send.
-    wallet = create_wallet()
-    path = Path(__file__).resolve().parent / "fixtures" / "demo_wallet.json"
-    save_wallet(wallet, path)
-    addr = receive_address(wallet)
-    print(f"receive address: {addr}")
-    print(f"saved keypair:   {path}")
-    print(f"balance:         {get_balance(wallet)} SOL")
-    print("Fund via faucet: https://faucet.solana.com/")
-    print("Then: send_sol(load_wallet(path), '<dest>', 0.01)")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile choreography S5–S14 + public card binding (S15)."""
+"""Compile TinyChoreo with concrete.fhe: encrypted v, clear public card. No Adam."""
 from __future__ import annotations
 
 import argparse
@@ -9,101 +9,162 @@ import sys
 
 import numpy as np
 import torch
-from torch import nn
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from umbra.circuits.choreo_floor import bits_from_v
-from umbra.fixtures import CARD_LRP, CARD_RLP, CARD_RRI, CARD_RRP, MUTANTS, V_OK, encode_card, mutant
+from umbra.circuits.tiny_choreo import TinyChoreo
+from umbra.fixtures import (
+    CARD_LRP,
+    CARD_RLP,
+    CARD_RRI,
+    CARD_RRP,
+    MUTANTS,
+    V_OK,
+    encode_card,
+    mutant,
+    reference,
+)
+
+CARDS = [CARD_RRP, CARD_LRP, CARD_RLP, CARD_RRI]
+SCALE = 100
+THRESH = 50
 
 
-class ChoreoP3(nn.Module):
-    """Card is clear scalars that scale encrypted heads — no Linear(card)."""
-
-    def __init__(self, hidden: int = 96):
-        super().__init__()
-        self.enc = nn.Sequential(nn.Linear(75, hidden), nn.ReLU())
-        self.heads = nn.ModuleList([nn.Linear(hidden, 1) for _ in range(9)])
-
-    def forward(self, x, card):
-        e = self.enc(x)
-        hand = 2 * card[:, 0:1] - 1
-        side = 2 * card[:, 1:2] - 1
-        digit = (x[:, 68:71] * card[:, 2:5]).sum(dim=1, keepdim=True)
-        parts = [
-            self.heads[0](e) * hand,
-            self.heads[1](e),
-            self.heads[2](e),
-            self.heads[3](e) * side,
-            self.heads[4](e),
-            self.heads[5](e),
-            20 * digit - 10,
-            self.heads[6](e),
-            self.heads[7](e),
-            self.heads[8](e),
-        ]
-        return torch.cat(parts, dim=1)
+def quant_v(v) -> np.ndarray:
+    return np.rint(np.asarray(v, dtype=np.float64) * SCALE).astype(np.int64)
 
 
-def training_set():
-    cards = [CARD_RRP, CARD_LRP, CARD_RLP, CARD_RRI]
-    xs, cs, ys = [], [], []
-    vectors = [V_OK] + [mutant(m) for m in MUTANTS]
-    for card in cards:
-        cvec = encode_card(card)
-        for v in vectors:
-            xs.append(v)
-            cs.append(cvec)
-            ys.append(bits_from_v(v, card))
-    return np.asarray(xs, dtype=np.float32), np.asarray(cs, dtype=np.float32), np.asarray(ys, dtype=np.float32)
+def quant_card(card) -> np.ndarray:
+    return np.rint(np.asarray(encode_card(card), dtype=np.float64)).astype(np.int64)
 
 
-def train_exact(model: ChoreoP3, xs, cs, ys, steps: int = 15000):
-    xt = torch.tensor(xs)
-    ct = torch.tensor(cs)
-    yt = torch.tensor(ys, dtype=torch.float32)
-    opt = torch.optim.Adam(model.parameters(), lr=0.03)
-    loss_fn = nn.BCEWithLogitsLoss()
-    for step in range(steps):
-        logits = model(xt, ct)
-        loss = loss_fn(logits, yt)
-        opt.zero_grad()
-        loss.backward()
-        opt.step()
-        with torch.no_grad():
-            pred = (torch.sigmoid(model(xt, ct)) >= 0.5).int()
-            if torch.equal(pred, yt.int()):
-                print(f"exact fit at step {step}")
-                return
-    raise SystemExit(f"cleartext mismatch after {steps} steps")
+def weight_bias():
+    m = TinyChoreo().eval()
+    w = np.rint(m.lin.weight.detach().numpy().T).astype(np.int64)  # (75, 10)
+    b = np.rint(m.lin.bias.detach().numpy() * SCALE).astype(np.int64)
+    return w, b
+
+
+def inputset():
+    rows = []
+    for card in CARDS:
+        cq = quant_card(card)
+        for v in [V_OK] + [mutant(m) for m in MUTANTS]:
+            rows.append((quant_v(v), cq))
+    return rows
+
+
+def bits_from_y(y) -> list:
+    return (np.asarray(y).reshape(-1) >= THRESH).astype(int).tolist()
+
+
+def check_integer():
+    w, b = weight_bias()
+    bad = 0
+    for card in CARDS:
+        cq = quant_card(card)
+        for v in [V_OK] + [mutant(m) for m in MUTANTS]:
+            x = quant_v(v)
+            y = x @ w + b
+            y = y.astype(np.int64).copy()
+            y[0] = y[0] * cq[0] + y[0] * cq[0] - y[0]
+            y[3] = y[3] * cq[1] + y[3] * cq[1] - y[3]
+            y[6] = 20 * (x[68] * cq[2] + x[69] * cq[3] + x[70] * cq[4]) - 1000
+            got = bits_from_y(y)
+            want = reference(v, card)
+            if got != want:
+                bad += 1
+                print("int mismatch", got, want)
+    if bad:
+        raise SystemExit(f"integer cleartext mismatches {bad}")
+    print(f"integer cleartext ok rows={len(CARDS) * (1 + len(MUTANTS))}")
+
+
+def make_circuit():
+    from concrete import fhe
+
+    w, b = weight_bias()
+
+    @fhe.compiler({"x": "encrypted", "card": "clear"})
+    def choreo(x, card):
+        y = x @ w + b
+        s5 = y[0] * card[0] + y[0] * card[0] - y[0]
+        s8 = y[3] * card[1] + y[3] * card[1] - y[3]
+        s11 = 20 * (x[68] * card[2] + x[69] * card[3] + x[70] * card[4]) - 1000
+        return fhe.array([s5, y[1], y[2], s8, y[4], y[5], s11, y[7], y[8], y[9]])
+
+    return choreo
 
 
 def compile_concrete(out_dir: pathlib.Path):
-    from concrete.ml.deployment import FHEModelDev
-    from concrete.ml.torch.compile import compile_torch_model
+    from concrete import fhe
 
-    xs, cs, ys = training_set()
-    model = ChoreoP3().eval()
-    train_exact(model, xs, cs, ys)
-    quantized = compile_torch_model(
-        model,
-        (xs, cs),
-        n_bits=8,
-        inputs_encryption_status=("encrypted", "clear"),
-    )
+    check_integer()
+    choreo = make_circuit()
+    print("compiling concrete.fhe TinyChoreo...")
+    circuit = choreo.compile(inputset())
+    print("compiled pbs", circuit.programmable_bootstrap_count)
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
-    FHEModelDev(path_dir=str(out_dir), model=quantized).save()
+    circuit.server.save(out_dir / "server.zip", via_mlir=True)
+    circuit.client.save(out_dir / "client.zip")
+    np.savez(out_dir / "qparams.npz", scale=SCALE, thresh=THRESH)
     print(f"saved artifacts to {out_dir}")
+    return circuit
+
+
+def probe_tiny():
+    """Mac FHE probe once: Tiny Linear S5, clear public hand. Not the demo host."""
+    from concrete import fhe
+
+    @fhe.compiler({"x0": "encrypted", "hand": "clear"})
+    def s5(x0, hand):
+        d = x0 - 50
+        return d * hand + d * hand - d
+
+    circuit = s5.compile([(91, 1), (8, 1), (91, 0), (8, 0)])
+    circuit.keygen()
+    enc = circuit.encrypt(91, 1)
+    same_ct = enc[0]
+    d1 = circuit.decrypt(circuit.run(same_ct, 1))
+    d0 = circuit.decrypt(circuit.run(same_ct, 0))
+    if d1 < 0 or d0 >= 0:
+        raise SystemExit(f"probe bits wrong d1={d1} d0={d0}")
+    print("MAC_FHE_PROBE=ok", "same_ct", "hand1", d1, "hand0", d0, "pbs", circuit.programmable_bootstrap_count)
+
+
+def probe_full(circuit):
+    circuit.keygen()
+    x = quant_v(V_OK)
+    enc = circuit.encrypt(x, quant_card(CARD_RRP))
+    ct = enc[0]
+    y_rrp = circuit.decrypt(circuit.run(ct, quant_card(CARD_RRP)))
+    y_lrp = circuit.decrypt(circuit.run(ct, quant_card(CARD_LRP)))
+    print("full RRP", bits_from_y(y_rrp), "LRP", bits_from_y(y_lrp))
+    if bits_from_y(y_rrp) != reference(V_OK, CARD_RRP):
+        raise SystemExit("full probe RRP mismatch")
+    if bits_from_y(y_lrp)[0] != 0:
+        raise SystemExit("full probe LRP S5 not 0")
 
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--out", default="umbra/artifacts")
+    p.add_argument("--out", default="umbra/artifacts-p3")
+    p.add_argument("--probe", action="store_true", help="Mac Tiny Linear probe only")
+    p.add_argument("--check-only", action="store_true")
+    p.add_argument("--full-probe", action="store_true")
     args = p.parse_args()
-    compile_concrete(pathlib.Path(args.out))
+    if args.check_only:
+        check_integer()
+        return
+    if args.probe:
+        probe_tiny()
+        return
+    circuit = compile_concrete(pathlib.Path(args.out))
+    if args.full_probe:
+        probe_full(circuit)
 
 
 if __name__ == "__main__":

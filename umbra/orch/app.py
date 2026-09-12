@@ -49,15 +49,21 @@ class Orch(BaseHTTPRequestHandler):
         if path in ("/s1", "/nonce") or ctype.startswith("text/") or "json" in ctype:
             self._send(400, b"plaintext rejected", {"X-Umbra-Nonce": nonce} if nonce else None)
             return
-        if path == "/eval3":
-            up = os.environ.get("UMBRA_P3_UPSTREAM", "http://10.20.0.5:8087")
-        elif path == "/eval":
-            up = UPSTREAM
-        else:
+        routes = {
+            "/eval": (UPSTREAM, "/eval"),
+            "/eval3": (os.environ.get("UMBRA_P3_UPSTREAM", "http://10.20.0.5:8087"), "/eval"),
+            "/print": (os.environ.get("UMBRA_PRINT_UPSTREAM", "http://10.20.0.6:8082"), "/print"),
+            "/enroll": (os.environ.get("UMBRA_PRINT_UPSTREAM", "http://10.20.0.6:8082"), "/enroll"),
+            "/audio": (os.environ.get("UMBRA_AUDIO_UPSTREAM", "http://10.20.0.7:8083"), "/audio"),
+            "/face": (os.environ.get("UMBRA_FACE_UPSTREAM", "http://10.20.0.6:8084"), "/face"),
+            "/bid": (os.environ.get("UMBRA_BID_UPSTREAM", "http://10.20.0.6:8085"), "/bid"),
+        }
+        if path not in routes:
             self._send(404, b"no", {"X-Umbra-Nonce": nonce} if nonce else None)
             return
+        up, dest = routes[path]
         req = urllib.request.Request(
-            up.rstrip("/") + "/eval",
+            up.rstrip("/") + dest,
             data=body,
             method="POST",
             headers={"X-Umbra-Nonce": nonce, "Content-Type": "application/octet-stream"},

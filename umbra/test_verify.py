@@ -214,12 +214,27 @@ def test_voice_thresh_rejects_other_talker():
     check(VOICE_L2_MAX < 0.093, VOICE_L2_MAX)
 
 
+def test_voice_stricter_when_face_fails():
+    from umbra.verify import VOICE_L2_MAX, apply_voice_after_face, voice_max
+
+    check(voice_max(True) == VOICE_L2_MAX, "face ok keeps voice bar")
+    check(voice_max(False) < VOICE_L2_MAX, "face fail tightens voice")
+    mid = (voice_max(False) + VOICE_L2_MAX) / 2
+    jobs = {"face": {"ok": False}, "voice": {"ok": True, "l2": mid, "max": VOICE_L2_MAX}}
+    apply_voice_after_face(jobs)
+    check(not jobs["voice"]["ok"], mid)
+    jobs2 = {"face": {"ok": True}, "voice": {"ok": True, "l2": mid, "max": VOICE_L2_MAX}}
+    apply_voice_after_face(jobs2)
+    check(jobs2["voice"]["ok"], mid)
+
+
 def main():
     test_load_live()
     test_split_take()
     test_wave_from_l2s()
     test_take_frames_dense()
     test_voice_thresh_rejects_other_talker()
+    test_voice_stricter_when_face_fails()
     test_vultr_face_uses_profile()
     print(f"CHECKS_RUN={CHECKS_RUN}")
 

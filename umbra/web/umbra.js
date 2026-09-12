@@ -143,24 +143,18 @@
     sealViz: (root, on, ms, after) => {
       if (!root) return;
       const glyphs = "01ABCDEF89";
-      const cipher = root.querySelector(".ut-cipher");
-      const wave = root.querySelector(".ut-wave");
+      const rows = root.querySelectorAll(".ut-cipher");
       if (root._off) { clearTimeout(root._off); root._off = 0; }
       root._after = on ? after : null;
-      if (on && cipher && !cipher.childElementCount) {
-        for (let i = 0; i < 48; i++) {
-          const s = document.createElement("span");
-          s.textContent = glyphs[(i * 7) % glyphs.length];
-          cipher.appendChild(s);
-        }
-      }
-      if (on && wave && !wave.childElementCount) {
-        for (let i = 0; i < 20; i++) {
-          const b = document.createElement("i");
-          b.style.setProperty("--d", (i * 0.07) + "s");
-          b.style.setProperty("--h", (24 + ((i * 17) % 56)) + "%");
-          wave.appendChild(b);
-        }
+      if (on) {
+        rows.forEach((row, r) => {
+          if (row.childElementCount) return;
+          for (let i = 0; i < 16; i++) {
+            const s = document.createElement("span");
+            s.textContent = glyphs[(i * 7 + r * 3) % glyphs.length];
+            row.appendChild(s);
+          }
+        });
       }
       root.classList.toggle("is-on", !!on);
       if (!on) {
@@ -169,21 +163,38 @@
         return;
       }
       if (!root._t) {
+        root._n = 0;
         root._t = setInterval(() => {
-          if (!cipher || !cipher.children.length) return;
-          const n = cipher.children[(Math.random() * cipher.children.length) | 0];
-          n.textContent = glyphs[(Math.random() * glyphs.length) | 0];
-          n.classList.toggle("on");
-        }, 150);
+          const probe = rows[0], rost = rows[1], ev = rows[2];
+          const flick = (row) => {
+            if (!row || !row.children.length) return;
+            const n = row.children[(Math.random() * row.children.length) | 0];
+            n.textContent = glyphs[(Math.random() * glyphs.length) | 0];
+            n.classList.toggle("on");
+          };
+          flick(probe);
+          flick(rost);
+          if (probe && rost && ev) {
+            // CKKS add: eval stays ciphertext. Rotate now and then, like a slot rotate.
+            if ((root._n++ % 8) === 0 && ev.firstChild) ev.appendChild(ev.firstChild);
+            const n = Math.min(probe.children.length, rost.children.length, ev.children.length);
+            for (let i = 0; i < n; i++) {
+              const a = glyphs.indexOf(probe.children[i].textContent);
+              const b = glyphs.indexOf(rost.children[i].textContent);
+              ev.children[i].textContent = glyphs[(((a < 0 ? 0 : a) + (b < 0 ? 0 : b)) % glyphs.length)];
+              ev.children[i].classList.toggle("on", probe.children[i].classList.contains("on") !== rost.children[i].classList.contains("on"));
+            }
+          } else {
+            flick(probe);
+          }
+        }, 120);
       }
-      // Encrypt flourish is 1s max. FHE eval keeps going on the lane bars.
-      const cap = ms == null ? 1000 : ms;
-      if (cap > 0) root._off = setTimeout(() => {
+      if (ms > 0) root._off = setTimeout(() => {
         const next = root._after;
         root._after = null;
         g.Umbra.sealViz(root, false);
         if (next) next();
-      }, cap);
+      }, ms);
     },
     loadEta: () => {
       const base = { face: 19000, voice: 3500, words: 4500, wave: 19000 };

@@ -342,17 +342,17 @@ def test_pages_split():
     check('classlist.toggle("short", step === "voice")' in enroll, "small camera while reading")
     check('classlist.toggle("rest"' in enroll, "enroll preview rests after stills")
     check('classlist.toggle("rest"' in do, "signin preview rests after take")
-    check("sealviz" in enroll and "sealviz" in do, "encrypt bar on enroll/signin")
+    check("paintlanes" in enroll and "sealviz" in do, "encrypt bars / fhe blocks")
     save = enroll[enroll.find("async function saveencrypted"):]
-    check(0 <= save.find("sealviz(") < save.find("umbra.enroll"), "enroll seal then encrypt")
-    check("paintlanes" not in save, "enroll encrypt is not the fhe bars")
+    check(0 <= save.find("paintlanes(") < save.find("umbra.enroll"), "enroll bars then encrypt")
+    check("sealviz" not in save, "enroll has no fhe eval viz")
     check('id="enter"' in enroll and "enrolled=" in enroll, "enroll enter after save")
     send = do[do.find('getelementbyid("send").onclick'):]
-    check(0 <= send.find("sealviz(") < send.find("umbra.verify"), "seal before verify")
-    check("1000" in send[send.find("sealviz("):send.find("umbra.verify")], "signin seal 1s")
-    check("startfhe" in send and "heldout" in send, "fhe starts after encrypt flourish")
-    fhe = do[do.find("function startfhe"):do.find("function startfhe") + 400]
-    check('paintlights("run")' in fhe and "phase !== \"encrypt\"" in fhe, "fhe bars only after encrypt")
+    check("paintlanes(" in send and "settimeout(startfhe, 1000)" in send, "encrypt bars 1s then fhe")
+    check("startfhe" in send and "heldout" in send, "result waits if encrypt is still up")
+    fhe = do[do.find("function startfhe"):do.find("function startfhe") + 500]
+    check("sealviz(" in fhe and 'paintlights("idle")' in fhe, "fhe is the block eval")
+    check('data-fhe="eval"' in do and 'data-fhe="probe"' in do, "fhe is probe ⋆ roster")
     check('id="enter"' in do and 'location.assign("/home")' in do, "enter to desk")
     check("settimeout(() => location.assign(\"/home\")" not in do, "no auto enter")
     camfn = enroll[enroll.find("async function opencam"):enroll.find("async function tickqa")]
@@ -401,7 +401,7 @@ def test_pages_split():
     check("#guide.ok .oval" in css and "var(--ok)" in css, "green oval rule in shared css")
     check("#stage.short" in css or ".face-view.short" in css, "reading camera can shrink")
     check(".face-view.rest" in css and ".seal-viz" in css, "rest preview + encrypt strip")
-    check(".lane-track" in css, "estimated fhe bars")
+    check(".lane-track" in css and ".fhe-pair" in css, "encrypt bars + fhe blocks")
     check('id="stage"' in do and "face-view" in do, "signin camera is the face window")
     check("[hidden] { display: none !important; }" in css, "hidden rows/oval must actually hide (display:flex beats ua hidden)")
 

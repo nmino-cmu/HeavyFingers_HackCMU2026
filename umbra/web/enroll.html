@@ -5,7 +5,7 @@
   <title>Umbra — enroll</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=all4">
+  <link rel="stylesheet" href="/style.css?v=all5">
 </head>
 <body class="desktop face-page" data-bg="face">
 <div data-umbra-bg></div>
@@ -55,16 +55,12 @@
       <p class="muted" id="rosterLine">Roster: none yet</p>
       <div class="lights" id="lights"></div>
       <p id="err"></p>
-      <div class="seal-viz" id="seal" aria-hidden="true">
-        <p class="seal-kicker">Encrypting · key stays here</p>
-        <div class="ut-cipher" id="sealCipher"></div>
-        <div class="ut-wave" id="sealWave"></div>
-      </div>
+      <div class="seal-viz" id="seal" hidden></div>
     </div>
     <div class="win-resize" aria-hidden="true"></div>
   </article>
 </div>
-<script src="/umbra.js?v=all4"></script>
+<script src="/umbra.js?v=all5"></script>
 <script src="/vendor/grain.js"></script>
 <script src="/windows.js?v=wire5"></script>
 <script>
@@ -459,16 +455,25 @@ async function saveEncrypted() {
   const pidEl = document.getElementById("pid");
   if (pidEl && pidEl.value.trim()) fd.append("id", pidEl.value.trim());
   const btn = document.getElementById("doEnroll");
+  const nFace = bag.face.length + readFaces.length;
+  const items = [
+    {id: "face", label: "F", name: "face ×" + nFace, eta: nFace * 1100},
+    {id: "voice", label: "V", name: "voice", eta: bag.voice.length * 1100},
+  ];
   document.getElementById("enrollHint").textContent = "Encrypting on this machine. Key stays here.";
   btn.disabled = true;
-  Umbra.sealViz(document.getElementById("seal"), true, 1000);
+  Umbra.paintLanes(document.getElementById("lights"), {mode: "run", items});
   try {
     const out = await Umbra.enroll(fd);
+    Umbra.paintLanes(document.getElementById("lights"), {mode: "done", items: items.map((it) => Object.assign({}, it, {ok: true}))});
     enrolledId = out.id;
     Umbra.session.set({ id: out.id, at: Date.now() });
     stopCam();
     step = "done";
     render();
+  } catch (e) {
+    Umbra.paintLanes(document.getElementById("lights"), {mode: "done", items: items.map((it) => Object.assign({}, it, {ok: false}))});
+    throw e;
   } finally {
     btn.disabled = false;
   }

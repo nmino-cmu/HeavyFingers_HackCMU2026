@@ -5,7 +5,7 @@
   <title>Umbra — do this</title>
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/logo.png">
-  <link rel="stylesheet" href="/style.css?v=all4">
+  <link rel="stylesheet" href="/style.css?v=all5">
 </head>
 <body class="desktop face-page" data-bg="face">
 <div data-umbra-bg></div>
@@ -42,15 +42,21 @@
       <p class="muted" id="status"></p>
       <p id="err"></p>
       <div class="seal-viz" id="seal" aria-hidden="true">
-        <p class="seal-kicker">Encrypting · key stays here</p>
-        <div class="ut-cipher" id="sealCipher"></div>
-        <div class="ut-wave" id="sealWave"></div>
+        <p class="seal-kicker">Eval on ciphertext · sk never leaves</p>
+        <div class="fhe-pair">
+          <div class="fhe-lab">probe</div>
+          <div class="ut-cipher" data-fhe="probe"></div>
+          <div class="fhe-lab">roster</div>
+          <div class="ut-cipher" data-fhe="roster"></div>
+          <div class="fhe-lab">eval</div>
+          <div class="ut-cipher" data-fhe="eval"></div>
+        </div>
       </div>
     </div>
     <div class="win-resize" aria-hidden="true"></div>
   </article>
 </div>
-<script src="/umbra.js?v=all4"></script>
+<script src="/umbra.js?v=all5"></script>
 <script src="/vendor/grain.js"></script>
 <script src="/windows.js?v=wire5"></script>
 <script>
@@ -332,8 +338,16 @@ document.getElementById("rec").onclick = () => {
   }).catch(showErr);
 };
 
+function encryptItems() {
+  return [
+    {id: "face", label: "F", name: "face", eta: 1000},
+    {id: "voice", label: "V", name: "voice", eta: 850},
+  ];
+}
+
 function showResult(out) {
   phase = "done";
+  Umbra.sealViz(document.getElementById("seal"), false);
   Umbra.saveEta(out.ms);
   paintLights("done", out.bits);
   const ms = out.ms || {};
@@ -364,8 +378,9 @@ function startFhe() {
   }
   if (phase !== "encrypt") return;
   phase = "fhe";
-  paintLights("run");
-  document.getElementById("status").textContent = "FHE on Vultr. Ciphertext only.";
+  paintLights("idle");
+  Umbra.sealViz(document.getElementById("seal"), true);
+  document.getElementById("status").textContent = "FHE on Vultr. Eval on ciphertext.";
 }
 
 document.getElementById("enter").onclick = () => location.assign("/home");
@@ -384,10 +399,11 @@ document.getElementById("send").onclick = () => {
     phase = "encrypt";
     heldOut = null;
     document.getElementById("enter").hidden = true;
-    paintLights("idle");
+    Umbra.sealViz(document.getElementById("seal"), false);
+    Umbra.paintLanes(document.getElementById("lights"), {mode: "run", items: encryptItems()});
     document.getElementById("status").textContent = "Encrypting the clip you just played. Key stays here.";
     document.getElementById("send").disabled = true;
-    Umbra.sealViz(document.getElementById("seal"), true, 1000, startFhe);
+    setTimeout(startFhe, 1000);
     const fd = new FormData();
     fd.append("take", blob, takeName(blob));
     if (audioTake && audioTake.size) fd.append("audio", audioTake, audioTake.type.indexOf("mp4") >= 0 ? "mic.mp4" : "mic.webm");
@@ -400,6 +416,7 @@ document.getElementById("send").onclick = () => {
   }).catch((e) => {
     phase = "idle";
     heldOut = null;
+    Umbra.sealViz(document.getElementById("seal"), false);
     paintLights("idle");
     document.getElementById("send").disabled = false;
     showErr(e);

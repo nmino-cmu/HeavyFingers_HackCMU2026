@@ -28,6 +28,7 @@ os.environ.setdefault("UMBRA_KEY_DIR", str(HERE / "enroll_keys" / "_circuit"))
 FACE_L2_MAX = float(os.environ.get("UMBRA_FACE_L2_MAX", "220"))
 # Same-you live takes land ~0.03–0.05. Other talker on this machine was 0.093. 0.2 ≈ pink noise.
 VOICE_L2_MAX = float(os.environ.get("UMBRA_VOICE_L2_MAX", "0.07"))
+VOICE_L2_STRICT = float(os.environ.get("UMBRA_VOICE_L2_STRICT", "0.04"))
 # ponytail: occlusion = FHE L2 vs enroll, not a hand net. Recover-as-you is the filter-drop check.
 OCCLUDE_L2 = float(os.environ.get("UMBRA_OCCLUDE_L2", "220"))
 NO_FACE_L2 = 999.0
@@ -37,6 +38,19 @@ FACE_FPS = float(os.environ.get("UMBRA_FACE_FPS", "8"))
 FACE_CALLS = int(os.environ.get("UMBRA_FACE_CALLS", "24"))
 
 LANES = ("face", "voice", "words", "wave")
+
+
+def voice_max(face_ok: bool) -> float:
+    return VOICE_L2_MAX if face_ok else min(VOICE_L2_MAX, VOICE_L2_STRICT)
+
+
+def apply_voice_after_face(jobs: dict) -> None:
+    v = jobs.get("voice")
+    if not v or v.get("l2") is None:
+        return
+    mx = voice_max(bool((jobs.get("face") or {}).get("ok")))
+    v["max"] = mx
+    v["ok"] = float(v["l2"]) < mx
 
 
 def wave_from_l2s(scores, match=None, occlude=None) -> bool:
@@ -322,6 +336,7 @@ def run(take: bytes, card: dict | None = None, person_id: str = "", audio_side: 
                 jobs[name] = _lane(name, False, err=str(e)[:240], ms=0)
     for name in LANES:
         jobs.setdefault(name, _lane(name, False, err="skipped", ms=0))
+    apply_voice_after_face(jobs)
     lights = [1 if jobs[n]["ok"] else 0 for n in LANES]
     total_ms = int((time.perf_counter() - t0) * 1000)
     audio_info = qa_voice(audio) if audio else {"ok": False, "reason": "no audio"}
@@ -332,7 +347,7 @@ def run(take: bytes, card: dict | None = None, person_id: str = "", audio_side: 
         "labels": list(LANES),
         "bits": lights,
         "ms": {n: jobs[n].get("ms", 0) for n in LANES} | {"total": total_ms},
-        "thresh": {"face": FACE_L2_MAX, "voice": VOICE_L2_MAX},
+        "thresh": {"face": FACE_L2_MAX, "voice": jobs["voice"].get("max", VOICE_L2_MAX)},
         "profile": {"faces": len(faces), "voices": len(voices)},
         "audio": audio_info,
     }

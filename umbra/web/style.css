@@ -49,21 +49,30 @@ button:disabled { opacity:0.5; cursor:wait; }
 .pill.ok { background:var(--ok); color:#062; }
 .pill.no { background:var(--no); color:#fff; }
 .lights { display:flex; gap:0.45rem; flex-wrap:wrap; align-items:center; }
-.lights.busy { flex-direction: column; align-items: stretch; gap: 0.32rem; }
+.lights.busy {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.55rem 0.45rem;
+  border: 1px solid #fff;
+  background: var(--bg-deep);
+}
 .bit { width:1.35rem; height:1.35rem; border-radius:0; background:#2a2b30; display:grid; place-items:center; font-size:0.62rem; color:#bbb; }
 .bit.on, .lane.is-on .bit { background:var(--ok); color:#062; }
 .bit.off, .lane.is-off .bit { background:var(--no); color:#fff; }
-.lane.is-run .bit { background:#e4b42a; color:#1a1404; }
+.lane.is-run .bit { background: #3e2356; color: #fff; border: 1px solid #fff; }
 .lane {
   display: grid;
   grid-template-columns: 1.35rem 1fr auto;
-  gap: 0.45rem;
+  gap: 0.55rem;
   align-items: center;
 }
 .lights:not(.busy) .lane { display: block; }
 .lane-track {
-  height: 3px;
-  background: #2a1638;
+  height: 7px;
+  background: #16071f;
+  border: 1px solid #5a3a70;
   overflow: hidden;
 }
 .lane-track i {
@@ -72,12 +81,16 @@ button:disabled { opacity:0.5; cursor:wait; }
   width: 0;
   background: #cbb8d8;
 }
+.lane.is-run .lane-track i {
+  background: linear-gradient(90deg, #6a4a80 0%, #d8c6e8 72%, #fff 100%);
+}
 .lane.is-on .lane-track i { background: var(--ok); }
 .lane.is-off .lane-track i { background: var(--no); }
 .lane-name {
   font-size: 11px;
   color: var(--muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   min-width: 3.2rem;
   text-align: right;
 }
@@ -570,9 +583,29 @@ body.face-page .face-desk {
               border-color 0.35s ease;
 }
 .seal-viz.is-on {
-  max-height: 5.4rem;
+  max-height: 8.8rem;
   opacity: 1;
-  padding: 0.4rem 0.5rem 0.35rem;
+  padding: 0.45rem 0.55rem 0.4rem;
+  border-color: #fff;
+}
+.fhe-pair {
+  display: grid;
+  grid-template-columns: 3.4rem 1fr;
+  gap: 4px 0.45rem;
+  align-items: center;
+}
+.fhe-lab {
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fhe-pair .ut-cipher[data-fhe="eval"] span {
+  border-color: #6a4a80;
+}
+.fhe-pair .ut-cipher[data-fhe="eval"] span.on {
+  background: #2a1638;
+  color: #fff;
   border-color: #fff;
 }
 .seal-viz::after {

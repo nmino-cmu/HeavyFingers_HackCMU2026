@@ -1,23 +1,28 @@
-"""Public video card. Cleartext, Mac-only."""
+"""Public video card (clear, Mac). Whisper stays on this machine."""
 from __future__ import annotations
 
-import json
+import os
 import random
+import sys
 
+WORDS = (
+    "the lazy dog fox am is hack win project asterisk "
+    "quick brown jumps over cmu lattice cipher nonce"
+).split()
 HANDS = ("left", "right")
 SIDES = ("left", "right")
 ENDS = ("pinky", "index", "thumb")
-NONCE = (
-    "the lazy dog fox am is hack win project asterisk"
-).split()
+
+_model = None
 
 
 def generate(rng: random.Random | None = None) -> dict:
     r = rng or random.Random()
-    n = 8 + r.randrange(5)
-    words = [r.choice(NONCE) for _ in range(n)]
+    n = r.randint(8, 12)
+    nonce = " ".join(r.sample(WORDS, n))
     return {
-        "say": " ".join(words),
+        "say": nonce,
+        "nonce": nonce,
         "hand": r.choice(HANDS),
         "motion": "clench_unclench",
         "where": "in_front_of_face",
@@ -26,9 +31,35 @@ def generate(rng: random.Random | None = None) -> dict:
     }
 
 
-def main():
-    print(json.dumps(generate(), indent=2))
+generate_card = generate
+
+
+def render(card: dict) -> str:
+    return (
+        f"say:    {card['say']}\n"
+        f"hand:   {card['hand']}\n"
+        f"motion: {card['motion']}\n"
+        f"where:  {card['where']}\n"
+        f"side:   {card['side']}\n"
+        f"end:    {card['end']}\n"
+    )
+
+
+def transcribe(audio_path: str) -> str:
+    """Whisper on the Mac. Never called from the worker."""
+    global _model
+    import whisper
+
+    if _model is None:
+        name = os.environ.get("UMBRA_WHISPER_MODEL", "tiny.en")
+        _model = whisper.load_model(name)
+    return _model.transcribe(str(audio_path), language="en")["text"]
+
+
+def main(argv=None) -> int:
+    print(render(generate()), end="")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main(sys.argv))

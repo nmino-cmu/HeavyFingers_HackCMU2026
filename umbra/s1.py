@@ -1,15 +1,20 @@
-"""S1: exact-order nonce in a local transcript. No network."""
+"""S1: exact nonce words in order. Mac-local. No HTTP."""
+
+
+def _words(text: str) -> list[str]:
+    out = []
+    for raw in text.split():
+        w = raw.strip(".,!?;:\"'").lower()
+        if w:
+            out.append(w)
+    return out
 
 
 def s1(transcript: str, nonce: str) -> bool:
-    words = [w.strip(".,!?;:\"'").lower() for w in transcript.split() if w.strip(".,!?;:\"'")]
-    need = [w.lower() for w in nonce.split() if w]
+    """True iff nonce words appear exactly, in order (case/punct ignored)."""
+    need = _words(nonce)
+    got = _words(transcript)
     if not need:
         return False
-    i = 0
-    for w in words:
-        if w == need[i]:
-            i += 1
-            if i == len(need):
-                return True
-    return False
+    n = len(need)
+    return any(got[i : i + n] == need for i in range(len(got) - n + 1))

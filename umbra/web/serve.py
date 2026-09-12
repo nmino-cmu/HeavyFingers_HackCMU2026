@@ -64,8 +64,13 @@ class H(BaseHTTPRequestHandler):
             from umbra.fixtures import CARD_RRP, REF_OK, V_OK, reference
             from umbra.s1 import s1
 
-            url = os.environ["UMBRA_WORKER_URL"].rstrip("/") + "/eval"
-            client = Client()
+            p3 = ROOT / "umbra/artifacts-p3/rrp"
+            if (p3 / "client.zip").is_file():
+                url = os.environ["UMBRA_WORKER_URL"].rstrip("/") + "/eval3"
+                client = Client(artifact_dir=p3)
+            else:
+                url = os.environ["UMBRA_WORKER_URL"].rstrip("/") + "/eval"
+                client = Client()
             body = client.pack_eval_body(V_OK, CARD_RRP)
             import urllib.request
 

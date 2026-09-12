@@ -49,7 +49,13 @@ class TinyChoreo(nn.Module):
         s12 = 20 * x[:, 74:75] - 10
         s13 = 20 * (1.0 - 2 * x[:, 71:72] + 2 * x[:, 72:73])
         s14 = 20 * x[:, 73:74] - 6
-        return torch.cat([s5, s6, s7, s8, s9, s10, s11, s12, s13, s14], dim=1)
+        # no torch.cat — Concrete-ML rejects mixed qparams on concat
+        eye = torch.eye(10, device=x.device, dtype=x.dtype)
+        parts = (s5, s6, s7, s8, s9, s10, s11, s12, s13, s14)
+        out = parts[0] * eye[0]
+        for i in range(1, 10):
+            out = out + parts[i] * eye[i]
+        return out
 
 
 def training_set():

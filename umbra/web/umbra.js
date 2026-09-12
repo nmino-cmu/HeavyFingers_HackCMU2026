@@ -2,7 +2,7 @@
 (function (g) {
   let localP;
   function local() {
-    localP = localP || import("./fhe-local.js");
+    localP = localP || import("./fhe-local.js?v=fft1");
     return localP;
   }
   async function j(url, opt) {
@@ -22,6 +22,7 @@
     cutout: () => Promise.resolve({}),
     escrows: () => Promise.resolve({ escrows: [], last_hop: {} }),
     receipts: () => Promise.resolve({ receipts: [] }),
+    boot: () => local().then((m) => m.boot()),
     enroll: (fd) => local().then((m) => m.enroll(fd)),
     verify: (fd) => local().then((m) => m.verify(fd)),
     session: {
@@ -88,6 +89,7 @@
     qaFace: (blob, pose) => local().then((m) => m.qaFace(blob, pose)),
     qaVoice: (blob) => local().then((m) => m.qaVoice(blob)),
     openCam: async (video, opt) => {
+      local().then((m) => m.boot()).catch(() => {});
       if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error("Camera is blocked on this URL. Use HTTPS.");
       }

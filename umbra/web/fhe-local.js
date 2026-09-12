@@ -1,5 +1,6 @@
 /* Browser CKKS: keys + ciphertext stay in this origin's IndexedDB. Vultr only evals. */
 import SEAL from "./vendor/node-seal/index_throws.js";
+import { voiceVec } from "./voice-vec.js?v=fft1";
 
 const POLY = 8192;
 const SCALE = 2 ** 40;
@@ -8,7 +9,7 @@ const FACE_N = 64;
 const FACE_L2_MAX = 220;
 const VOICE_L2_MAX = 0.2;
 const VOICE_MIN_S = 12;
-const DB = "umbra-local-v1";
+const DB = "umbra-local-v2";
 const WORDS = (
   "the lazy dog fox am is hack win project asterisk " +
   "quick brown jumps over cmu lattice cipher nonce"
@@ -159,85 +160,6 @@ function qaFromSamples(samples, rate) {
   else if (peak < 0.1 || rms < 0.022) reason = "too quiet — speak closer";
   else if (clip / n >= 0.03) reason = "clipping — back up from the mic";
   return { ok, seconds: dur, peak, rms, clip: clip / n, reason };
-}
-
-function voiceVec(samples, rate) {
-  let x = samples;
-  const env = new Float32Array(x.length);
-  let mx = 0;
-  for (let i = 0; i < x.length; i++) {
-    env[i] = Math.abs(x[i]);
-    if (env[i] > mx) mx = env[i];
-  }
-  const thr = Math.max(0.01, 0.12 * mx);
-  let a = 0;
-  let b = x.length - 1;
-  while (a < b && env[a] <= thr) a++;
-  while (b > a && env[b] <= thr) b--;
-  x = x.subarray(a, b + 1);
-  const win = Math.max(512, Math.floor(rate * 1.0));
-  const hop = Math.max(256, Math.floor(rate * 0.5));
-  const band = (slice) => {
-    const n = slice.length;
-    const re = new Float64Array(n);
-    const im = new Float64Array(n);
-    for (let i = 0; i < n; i++) {
-      const w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)));
-      re[i] = slice[i] * w;
-    }
-    // ponytail: DFT on 1s windows; upgrade to FFT if enroll feels slow
-    const spec = new Float64Array(Math.floor(n / 2) + 1);
-    for (let k = 0; k < spec.length; k++) {
-      let sr = 0;
-      let si = 0;
-      const ang = (-2 * Math.PI * k) / n;
-      for (let t = 0; t < n; t++) {
-        const c = Math.cos(ang * t);
-        const s = Math.sin(ang * t);
-        sr += re[t] * c;
-        si += re[t] * s;
-      }
-      spec[k] = sr * sr + si * si;
-    }
-    const hi = Math.min(7000, rate / 2 - 1);
-    const edges = [];
-    for (let i = 0; i <= 16; i++) edges.push(80 * Math.pow(hi / 80, i / 16));
-    const vec = [];
-    for (let i = 0; i < 16; i++) {
-      let acc = 0;
-      let c = 0;
-      for (let k = 0; k < spec.length; k++) {
-        const f = (k * rate) / n;
-        if (f >= edges[i] && f < edges[i + 1]) {
-          acc += spec[k];
-          c++;
-        }
-      }
-      vec.push(Math.log10((c ? acc / c : 0) + 1e-12));
-    }
-    return vec;
-  };
-  let v;
-  if (x.length < win) {
-    const pad = new Float32Array(Math.max(512, x.length));
-    pad.set(x);
-    v = band(pad);
-  } else {
-    const acc = new Array(16).fill(0);
-    let nwin = 0;
-    for (let i = 0; i + win <= x.length; i += hop) {
-      const w = band(x.subarray(i, i + win));
-      for (let j = 0; j < 16; j++) acc[j] += w[j];
-      nwin++;
-    }
-    v = acc.map((t) => t / nwin);
-  }
-  const mean = v.reduce((p, q) => p + q, 0) / 16;
-  v = v.map((t) => t - mean);
-  const nrm = Math.hypot(...v) || 1;
-  const out = new Float64Array(PIXELS);
-  for (let i = 0; i < 16; i++) out[i] = v[i] / nrm;
-  return out;
 }
 
 function s1(transcript, nonce) {
